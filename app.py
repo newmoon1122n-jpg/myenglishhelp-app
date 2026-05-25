@@ -137,7 +137,7 @@ st.markdown("""
         margin-bottom: 15px !important; 
     }
 
-    /* 🎯 核心修改：將 MACAOMAMAX 專屬簽名固定在網頁的最右下角 */
+    /* 🎯 核心修改：將 MACAONSK 專屬簽名固定在網頁的最右下角 */
     .author-signature {
         position: fixed;
         bottom: 12px;
@@ -211,6 +211,6 @@ if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
 # 🎯 渲染最右下角的專屬作者簽名
 st.markdown("""
     <div class="author-signature">
-        ✨ This website was crafted with AI by MACAOMAMAX.
+        ✨ This website was crafted with AI by MACAONSK.
     </div>
 """, unsafe_allow_html=True)
