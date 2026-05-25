@@ -51,7 +51,16 @@ st.markdown("""
         font-size: 22px !important;
         font-weight: 900 !important;
         color: #000000 !important;
-        margin-bottom: 12px;
+        margin-bottom: 5px !important;
+    }
+
+    /* 🎯 專屬修改：放在輸入框下方的聲明樣式 */
+    .input-disclaimer {
+        font-size: 14px !important;
+        color: #64748B !important;    /* 優雅的灰藍色，既清晰又不會太刺眼 */
+        font-style: italic;          /* 斜體設計，增加提示感 */
+        margin-bottom: 12px !important;
+        display: block;
     }
 
     /* 輸入框：6 像素純黑超粗邊框 */
@@ -76,124 +85,4 @@ st.markdown("""
         border-radius: 12px !important;        
         background-color: #FF9800 !important;  
         color: #FFFFFF !important;             
-        border: none !important;
-        box-shadow: 0 4px 6px rgba(255, 152, 0, 0.3) !important; 
-        transition: all 0.2s ease;
-    }
-    .stButton button:hover {
-        background-color: #F57C00 !important;  
-        transform: translateY(-2px) !important; 
-        box-shadow: 0 6px 12px rgba(255, 152, 0, 0.4) !important;
-    }
-    
-    /* 每一句英文卡片的精美設計 */
-    .sentence-card {
-        background-color: #FFFFFF;
-        padding: 24px;
-        border-radius: 16px;
-        border-left: 6px solid #3B82F6;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-        margin-top: 20px;
-        margin-bottom: 10px;
-        transition: transform 0.2s;
-    }
-    .sentence-card:hover {
-        transform: translateY(-2px);
-    }
-    
-    /* 卡片內文字樣式 */
-    .card-index {
-        font-size: 14px !important;
-        font-weight: bold !important;
-        color: #3B82F6 !important;
-        text-transform: uppercase;
-        margin-bottom: 4px;
-    }
-    .english-text { 
-        font-size: 26px !important; 
-        font-weight: 600 !important; 
-        color: #0F172A !important; 
-        line-height: 1.4 !important;
-        margin-bottom: 12px !important; 
-    }
-    .chinese-text { 
-        font-size: 20px !important; 
-        font-weight: 500 !important;
-        color: #475569 !important; 
-        background-color: #F1F5F9;
-        padding: 10px 14px;
-        border-radius: 8px;
-        margin-bottom: 15px !important; 
-    }
-
-    /* 🎯 核心修改：將免責聲明強行固定在網頁右下角，不影響主要內容閱讀 */
-    .footer-disclaimer {
-        position: fixed;
-        bottom: 10px;
-        right: 20px;
-        font-size: 13px !important;
-        color: #94A3B8 !important;  /* 採用優雅的淡灰色小字 */
-        background-color: rgba(248, 250, 252, 0.8); /* 半透明背景，防止擋住卡片 */
-        padding: 4px 8px;
-        border-radius: 6px;
-        font-family: sans-serif;
-        z-index: 999;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-# --- 🎨 畫面正式渲染 🎨 ---
-
-# 頂部精美招牌
-st.markdown("""
-    <div class="app-header">
-        <p class="main-title">📱 Smart Reading Buddy</p>
-        <p class="sub-title"> Break down text • Listen sentence by sentence </p>
-    </div>
-""", unsafe_allow_html=True)
-
-# 輸入區引導
-st.markdown('<p class="input-label">✍️ Paste your English text below:</p>', unsafe_allow_html=True)
-text_input = st.text_area("", height=180, placeholder="Once upon a time, there was a smart tool that helped students learn...")
-
-st.write("") # 留白
-
-# 啟動按鈕
-if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
-    if text_input.strip():
-        # 按句號、問號、感嘆號拆分句子
-        sentences = [s.strip() for s in text_input.replace('?', '.').replace('!', '.').split('.') if s.strip()]
-        
-        st.success(f"🎉 Awesome! We found {len(sentences)} sentences for you. Let's practice:")
-        
-        for i, sentence in enumerate(sentences):
-            full_sentence = sentence + "."
-            # 翻譯
-            translated = translate_text(full_sentence)
-            
-            # 用精美的卡片包裹英文與中文
-            st.markdown(f"""
-                <div class="sentence-card">
-                    <div class="card-index">Sentence {i+1}</div>
-                    <div class="english-text">{full_sentence}</div>
-                    <div class="chinese-text">💡 {translated}</div>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            # 語音播放條緊跟在卡片下方
-            try:
-                tts = gTTS(text=full_sentence, lang='en', slow=False)
-                tts.save(f"sentence_{i}.mp3")
-                st.audio(f"sentence_{i}.mp3", format="audio/mp3")
-            except Exception:
-                st.warning("Audio generation slightly delayed...")
-            
-    else:
-        st.warning("Please enter some English sentences first!")
-
-# 🎯 渲染右下角免責聲明
-st.markdown("""
-    <div class="footer-disclaimer">
-        Powered by Google Translate. Content is for reference only and may not be perfect.
-    </div>
-""", unsafe_allow_html=True)
+        border
