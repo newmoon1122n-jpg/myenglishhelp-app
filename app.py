@@ -4,6 +4,13 @@ import urllib.parse
 import json
 import urllib.request
 
+# 🎯 核心修改：設定網頁配置，直接隱藏 Streamlit 官方的所有選單與底部標籤
+st.set_page_config(
+    page_title="Smart Reading Buddy",
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
+
 # Official lightweight translation function
 def translate_text(text, target_lang='zh-TW'):
     try:
@@ -18,23 +25,30 @@ def translate_text(text, target_lang='zh-TW'):
 # --- 🚀 網頁精美視覺設計 (CSS) 🚀 ---
 st.markdown("""
     <style>
+    /* 🎯 終極大法：用 CSS 直接把右下角的卡片和右上角的選單在畫面上徹底抹去 */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .stAppDeployButton {display: none !important;}
+    div[data-testid="stDecoration"] {display: none !important;}
+
     /* 全局背景與字體優化 */
     .stApp {
         background-color: #F8FAFC;
     }
     
-    /* 🎯 核心修改：將 MACAOCMM 專屬簽名做成網頁 Logo，固定在左上角 */
+    /* 專屬商標：固定在左上角 */
     .author-logo {
         position: absolute;
-        top: -15px;             /* 往上提，緊貼頂部 */
-        left: 0px;              /* 靠最左邊 */
+        top: -15px;             
+        left: 0px;              
         font-size: 12px !important;
         font-weight: 700 !important;
-        color: #1E4ED8 !important;   /* 使用主題深藍色 */
-        background-color: #EFF6FF;  /* 淡藍色底色 */
+        color: #1E4ED8 !important;   
+        background-color: #EFF6FF;  
         padding: 5px 12px;
-        border-radius: 8px;        /* 漂亮的現代感小圓角 */
-        border: 2px solid #BFDBFE;  /* 藍色邊框 */
+        border-radius: 8px;        
+        border: 2px solid #BFDBFE;  
         font-family: sans-serif;
         letter-spacing: 0.5px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
@@ -49,7 +63,7 @@ st.markdown("""
         box-shadow: 0 10px 15px -3px rgba(59, 131, 246, 0.2);
         margin-bottom: 25px;
         text-align: center;
-        position: relative; /* 讓左上角定位更精準 */
+        position: relative; 
     }
     .main-title { 
         font-size: 38px !important; 
@@ -160,7 +174,7 @@ st.markdown("""
 
 # --- 🎨 畫面正式渲染 🎨 ---
 
-# 🎯 在網頁最頂端渲染左上角專屬 Logo 標籤
+# 在網頁最頂端渲染左上角專屬 Logo 標籤
 st.markdown("""
     <div class="author-logo">
         🚀 AI Crafted by MACAOCMM
@@ -176,7 +190,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # 置頂紅色免責聲明
-st.markdown('<span class="input-disclaimer">Powered by Google Translate. Content is for reference only and may not be perfect.</span>', unsafe_allow_html=True)
+st.markdown('<span class="input-disclaimer">⚠️ Powered by Google Translate. Content is for reference only and may not be perfect.</span>', unsafe_allow_html=True)
 
 # 輸入提示標題
 st.markdown('<p class="input-label">✍️ Paste your English text below:</p>', unsafe_allow_html=True)
