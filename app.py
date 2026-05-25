@@ -23,7 +23,7 @@ st.markdown("""
         background-color: #F8FAFC;
     }
     
-    /* 🎯 核心修改：將 MACAOMAMAN 專屬簽名做成網頁 Logo，固定在左上角 */
+    /* 🎯 核心修改：將 MACAOMAMA.N 專屬簽名做成網頁 Logo，固定在左上角 */
     .author-logo {
         position: absolute;
         top: -15px;             /* 往上提，緊貼頂部 */
@@ -163,7 +163,7 @@ st.markdown("""
 # 🎯 在網頁最頂端渲染左上角專屬 Logo 標籤
 st.markdown("""
     <div class="author-logo">
-        🚀 AI Crafted by MACAOMAMAN
+        🚀 AI Crafted by MACAOMAMA.N
     </div>
 """, unsafe_allow_html=True)
 
