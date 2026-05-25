@@ -46,27 +46,28 @@ st.markdown("""
         opacity: 0.9;
     }
     
-    /* 提示文字樣式 */
+    /* 提示文字樣式：字體再加粗 */
     .input-label {
-        font-size: 20px !important;
-        font-weight: 700 !important;
-        color: #0F172A !important;
-        margin-bottom: 10px;
+        font-size: 22px !important;
+        font-weight: 900 !important;
+        color: #000000 !important;
+        margin-bottom: 12px;
     }
 
-    /* 🎯 核心修改：把 Streamlit 預設的輸入框強行改成黑粗框 */
+    /* 🎯 終極修改：把邊框加粗到 6 像素純黑 */
     .stTextArea textarea {
-        border: 3px solid #000000 !important;  /* 3像素純黑超粗邊框 */
-        border-radius: 12px !important;       /* 保持漂亮的圓角 */
+        border: 6px solid #000000 !important;  /* 6像素！極致純黑超粗邊框 */
+        border-radius: 14px !important;       /* 稍微加大圓角更和諧 */
         background-color: #FFFFFF !important;  /* 保持背景純白 */
-        font-size: 18px !important;            /* 裡面打字的字體加大 */
+        font-size: 20px !important;            /* 輸入框內字體也同步加大 */
         color: #000000 !important;
+        font-weight: 500 !important;
     }
     
-    /* 當學生用滑鼠點擊輸入框時，邊框變色並加強發光，提醒效果更明顯 */
+    /* 當學生點擊輸入框時，保持黑粗框，但加入醒目的深藍色發光 */
     .stTextArea textarea:focus {
-        border-color: #3B82F6 !important;     /* 點擊時變成亮眼藍框 */
-        box-shadow: 0 0 0 3px rgba(59, 131, 246, 0.3) !important;
+        border-color: #1D4ED8 !important;     /* 點擊時變成醒目的深藍色粗框 */
+        box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.4) !important;
     }
     
     /* 每一句英文卡片的精美設計 */
@@ -130,32 +131,4 @@ st.write("") # 留白
 # 啟動按鈕
 if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
     if text_input.strip():
-        # 按句號、問號、感嘆號拆分句子
-        sentences = [s.strip() for s in text_input.replace('?', '.').replace('!', '.').split('.') if s.strip()]
-        
-        st.success(f"🎉 Awesome! We found {len(sentences)} sentences for you. Let's practice:")
-        
-        for i, sentence in enumerate(sentences):
-            full_sentence = sentence + "."
-            # 翻譯
-            translated = translate_text(full_sentence)
-            
-            # 用精美的卡片包裹英文與中文
-            st.markdown(f"""
-                <div class="sentence-card">
-                    <div class="card-index">Sentence {i+1}</div>
-                    <div class="english-text">{full_sentence}</div>
-                    <div class="chinese-text">💡 {translated}</div>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            # 語音播放條緊跟在卡片下方
-            try:
-                tts = gTTS(text=full_sentence, lang='en', slow=False)
-                tts.save(f"sentence_{i}.mp3")
-                st.audio(f"sentence_{i}.mp3", format="audio/mp3")
-            except Exception:
-                st.warning("Audio generation slightly delayed...")
-            
-    else:
-        st.warning("Please enter some English sentences first!")
+        # 按句號、問號、感嘆號拆分
