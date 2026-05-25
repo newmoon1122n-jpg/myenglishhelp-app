@@ -24,7 +24,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<p class="big-title">📱 英文影相點讀翻譯機</p>', unsafe_allow_html=True)
+st.markdown('<p class="big-title">📱 英文文章點讀翻譯機</p>', unsafe_allow_html=True)
 
 # 讓使用者輸入或貼上文章
 text_input = st.text_area("請在下方輸入或貼上英文文章：", height=200, placeholder="Once upon a time...")
