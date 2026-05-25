@@ -70,7 +70,7 @@ st.markdown("""
     
     /* 🎯 核心修改：把 START 按鈕的字體和外觀大幅放大加粗 */
     .stButton button {
-        font-size: 24px !important;           /* 字體加大到 24px */
+        font-size: 50px !important;           /* 字體加大到 50px */
         font-weight: 800 !important;           /* 字體超級加粗 */
         padding: 14px 28px !important;         /* 增加按鈕內襯，讓按鈕變大顆 */
         border-radius: 12px !important;        /* 圓角設計 */
