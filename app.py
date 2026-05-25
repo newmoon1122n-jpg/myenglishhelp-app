@@ -4,14 +4,14 @@ import urllib.parse
 import json
 import urllib.request
 
-# 🎯 核心修改：設定網頁配置，直接隱藏 Streamlit 官方的所有選單與底部標籤
+# 設定網頁配置
 st.set_page_config(
     page_title="Smart Reading Buddy",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# Official lightweight translation function
+# 官方輕量翻譯函數
 def translate_text(text, target_lang='zh-TW'):
     try:
         url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={target_lang}&dt=t&q={urllib.parse.quote(text)}"
@@ -25,19 +25,24 @@ def translate_text(text, target_lang='zh-TW'):
 # --- 🚀 網頁精美視覺設計 (CSS) 🚀 ---
 st.markdown("""
     <style>
-    /* 🎯 終極大法：用 CSS 直接把右下角的卡片和右上角的選單在畫面上徹底抹去 */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    .stAppDeployButton {display: none !important;}
-    div[data-testid="stDecoration"] {display: none !important;}
-
-    /* 全局背景與字體優化 */
+    /* 全局背景優化 */
     .stApp {
         background-color: #F8FAFC;
     }
+
+    /* 🎯 終極瞒天過海法：在右下角建立一塊與背景同色的「隱形防護罩」，徹底擋住頭像和皇冠 */
+    .invisible-shield {
+        position: fixed;
+        bottom: 0px;
+        right: 0px;
+        width: 150px;             /* 寬度足夠蓋住頭像和皇冠 */
+        height: 70px;             /* 高度足夠完全遮擋 */
+        background-color: #F8FAFC; /* 使用和網頁底色完全一樣的淺灰色 */
+        z-index: 999999 !important; /* 確保圖層在最最最上層，壓死官方圖標 */
+        pointer-events: auto;     /* 攔截點擊，不讓學生誤點 */
+    }
     
-    /* 專屬商標：固定在左上角 */
+    /* 專屬商標：固定在左上角，名稱修正為 MACAOMAMASUE */
     .author-logo {
         position: absolute;
         top: -15px;             
@@ -55,7 +60,7 @@ st.markdown("""
         z-index: 999;
     }
     
-    /* 大標題設計：漸層色彩、陰影與生動圖示 */
+    /* 大標題設計 */
     .app-header {
         background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
         padding: 30px;
@@ -66,14 +71,14 @@ st.markdown("""
         position: relative; 
     }
     .main-title { 
-        font-size: 38px !important; 
+        font-size: 34px !important; 
         font-weight: 800 !important; 
         color: #FFFFFF !important; 
         margin: 0px !important;
         letter-spacing: 1px;
     }
     .sub-title {
-        font-size: 16px !important;
+        font-size: 15px !important;
         color: #E0F2FE !important;
         margin-top: 8px !important;
         opacity: 0.9;
@@ -88,7 +93,7 @@ st.markdown("""
         display: block;
     }
 
-    /* 置頂紅色聲明的樣式 */
+    /* 置頂紅色聲明 */
     .input-disclaimer {
         font-size: 15px !important;
         color: #EF4444 !important;    
@@ -107,12 +112,8 @@ st.markdown("""
         color: #000000 !important;
         font-weight: 500 !important;
     }
-    .stTextArea textarea:focus {
-        border-color: #1D4ED8 !important;     
-        box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.4) !important;
-    }
     
-    /* START 按鈕的字體和外觀大幅放大加粗 */
+    /* START 按鈕外觀大幅放大加粗 */
     .stButton button {
         font-size: 24px !important;           
         font-weight: 800 !important;           
@@ -122,43 +123,22 @@ st.markdown("""
         color: #FFFFFF !important;             
         border: none !important;
         box-shadow: 0 4px 6px rgba(255, 152, 0, 0.3) !important; 
-        transition: all 0.2s ease;
-    }
-    .stButton button:hover {
-        background-color: #F57C00 !important;  
-        transform: translateY(-2px) !important; 
-        box-shadow: 0 6px 12px rgba(255, 152, 0, 0.4) !important;
     }
     
-    /* 每一句英文卡片的精美設計 */
+    /* 每一句英文卡片設計 */
     .sentence-card {
         background-color: #FFFFFF;
         padding: 24px;
         border-radius: 16px;
         border-left: 6px solid #3B82F6;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
         margin-top: 20px;
         margin-bottom: 10px;
-        transition: transform 0.2s;
-    }
-    .sentence-card:hover {
-        transform: translateY(-2px);
-    }
-    
-    /* 卡片內文字樣式 */
-    .card-index {
-        font-size: 14px !important;
-        font-weight: bold !important;
-        color: #3B82F6 !important;
-        text-transform: uppercase;
-        margin-bottom: 4px;
     }
     .english-text { 
         font-size: 26px !important; 
         font-weight: 600 !important; 
         color: #0F172A !important; 
-        line-height: 1.4 !important;
-        margin-bottom: 12px !important; 
     }
     .chinese-text { 
         font-size: 20px !important; 
@@ -167,14 +147,16 @@ st.markdown("""
         background-color: #F1F5F9;
         padding: 10px 14px;
         border-radius: 8px;
-        margin-bottom: 15px !important; 
     }
     </style>
 """, unsafe_allow_html=True)
 
 # --- 🎨 畫面正式渲染 🎨 ---
 
-# 在網頁最頂端渲染左上角專屬 Logo 標籤
+# 🎯 渲染右下角隱形防護罩，直接把官方小圖標壓在下面
+st.markdown('<div class="invisible-shield"></div>', unsafe_allow_html=True)
+
+# 在網頁最頂端渲染左上角專屬 Logo 標籤（並修正為 MACAOCMM）
 st.markdown("""
     <div class="author-logo">
         🚀 AI Crafted by MACAOCMM
@@ -202,32 +184,23 @@ st.write("") # 留白
 # 啟動按鈕
 if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
     if text_input.strip():
-        # 按句號、問號、感嘆號拆分句子
         sentences = [s.strip() for s in text_input.replace('?', '.').replace('!', '.').split('.') if s.strip()]
-        
-        st.success(f"🎉 Awesome! We found {len(sentences)} sentences for you. Let's practice:")
+        st.success(f"🎉 Awesome! We found {len(sentences)} sentences for you.")
         
         for i, sentence in enumerate(sentences):
             full_sentence = sentence + "."
-            # 翻譯
             translated = translate_text(full_sentence)
             
-            # 用精美的卡片包裹英文與中文
             st.markdown(f"""
                 <div class="sentence-card">
-                    <div class="card-index">Sentence {i+1}</div>
                     <div class="english-text">{full_sentence}</div>
                     <div class="chinese-text">💡 {translated}</div>
                 </div>
             """, unsafe_allow_html=True)
             
-            # 語音播放條緊跟在卡片下方
             try:
                 tts = gTTS(text=full_sentence, lang='en', slow=False)
                 tts.save(f"sentence_{i}.mp3")
                 st.audio(f"sentence_{i}.mp3", format="audio/mp3")
             except Exception:
-                st.warning("Audio generation slightly delayed...")
-            
-    else:
-        st.warning("Please enter some English sentences first!")
+                st.warning("Audio generation delayed...")
