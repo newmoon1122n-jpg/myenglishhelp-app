@@ -145,12 +145,12 @@ st.markdown("""
 st.markdown("""
     <div class="app-header">
         <p class="main-title">📱 Smart Reading Buddy</p>
-        <p class="sub-title">🤖 Break down text • Listen sentence by sentence • Master English easily!</p>
+        <p class="sub-title">Break down text • Listen sentence by sentence</p>
     </div>
 """, unsafe_allow_html=True)
 
 # 置頂紅色免責聲明
-st.markdown('<span class="input-disclaimer">⚠️ Powered by Google Translate. Content is for reference only and may not be perfect.</span>', unsafe_allow_html=True)
+st.markdown('<span class="input-disclaimer">Powered by Google Translate. Content is for reference only and may not be perfect.</span>', unsafe_allow_html=True)
 
 # 輸入提示標題
 st.markdown('<p class="input-label">✍️ Paste your English text below:</p>', unsafe_allow_html=True)
