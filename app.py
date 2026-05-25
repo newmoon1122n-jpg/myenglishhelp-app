@@ -137,7 +137,7 @@ st.markdown("""
         margin-bottom: 15px !important; 
     }
 
-    /* 🎯 核心修改：將 MACAOMAMASUE 專屬簽名固定在網頁的最右下角 */
+    /* 🎯 核心修改：將 MACAOMAMAX 專屬簽名固定在網頁的最右下角 */
     .author-signature {
         position: fixed;
         bottom: 12px;
