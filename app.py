@@ -211,6 +211,6 @@ if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
 # 🎯 渲染最右下角的專屬作者簽名
 st.markdown("""
     <div class="author-signature">
-        ✨ This website was crafted with AI by MACAOMAMASUE.
+        ✨ This website was crafted with AI by MACAOMAMAX.
     </div>
 """, unsafe_allow_html=True)
