@@ -80,4 +80,67 @@ st.markdown("""
     .english-text { 
         font-size: 26px !important; 
         font-weight: 600 !important; 
-        color:
+        color: #0F172A !important; 
+        line-height: 1.4 !important;
+        margin-bottom: 12px !important; 
+    }
+    .chinese-text { 
+        font-size: 20px !important; 
+        font-weight: 500 !important;
+        color: #475569 !important; 
+        background-color: #F1F5F9;
+        padding: 10px 14px;
+        border-radius: 8px;
+        margin-bottom: 15px !important; 
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# --- 🎨 畫面正式渲染 🎨 ---
+
+# 頂部精美招牌
+st.markdown("""
+    <div class="app-header">
+        <p class="main-title">📱 Smart Reading Buddy</p>
+        <p class="sub-title">🤖 Break down text • Listen sentence by sentence • Master English easily!</p>
+    </div>
+""", unsafe_allow_html=True)
+
+# 輸入區引導
+st.markdown('<p class="input-label">✍️ Paste your English text below:</p>', unsafe_allow_html=True)
+text_input = st.text_area("", height=180, placeholder="Once upon a time, there was a smart tool that helped students learn...")
+
+st.write("") # 留白
+
+# 啟動按鈕
+if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
+    if text_input.strip():
+        # 按句號、問號、感嘆號拆分句子
+        sentences = [s.strip() for s in text_input.replace('?', '.').replace('!', '.').split('.') if s.strip()]
+        
+        st.success(f"🎉 Awesome! We found {len(sentences)} sentences for you. Let's practice:")
+        
+        for i, sentence in enumerate(sentences):
+            full_sentence = sentence + "."
+            # 翻譯
+            translated = translate_text(full_sentence)
+            
+            # 用精美的卡片包裹英文與中文
+            st.markdown(f"""
+                <div class="sentence-card">
+                    <div class="card-index">Sentence {i+1}</div>
+                    <div class="english-text">{full_sentence}</div>
+                    <div class="chinese-text">💡 {translated}</div>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            # 語音播放條緊跟在卡片下方
+            try:
+                tts = gTTS(text=full_sentence, lang='en', slow=False)
+                tts.save(f"sentence_{i}.mp3")
+                st.audio(f"sentence_{i}.mp3", format="audio/mp3")
+            except Exception:
+                st.warning("Audio generation slightly delayed...")
+            
+    else:
+        st.warning("Please enter some English sentences first!")
