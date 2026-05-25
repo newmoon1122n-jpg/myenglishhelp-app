@@ -54,7 +54,7 @@ st.markdown("""
         margin-bottom: 12px;
     }
 
-    /* 🎯 輸入框：6 像素純黑超粗邊框 */
+    /* 輸入框：6 像素純黑超粗邊框 */
     .stTextArea textarea {
         border: 6px solid #000000 !important;  
         border-radius: 14px !important;       
@@ -68,23 +68,21 @@ st.markdown("""
         box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.4) !important;
     }
     
-    /* 🎯 核心修改：把 START 按鈕的字體和外觀大幅放大加粗 */
+    /* START 按鈕的字體和外觀大幅放大加粗 */
     .stButton button {
-        font-size: 100px !important;           /* 字體加大到 100px */
-        font-weight: 800 !important;           /* 字體超級加粗 */
-        padding: 14px 28px !important;         /* 增加按鈕內襯，讓按鈕變大顆 */
-        border-radius: 12px !important;        /* 圓角設計 */
-        background-color: #FF9800 !important;  /* 改成活力亮橘色，更吸引學生 */
-        color: #FFFFFF !important;             /* 白色文字 */
+        font-size: 24px !important;           
+        font-weight: 800 !important;           
+        padding: 14px 28px !important;         
+        border-radius: 12px !important;        
+        background-color: #FF9800 !important;  
+        color: #FFFFFF !important;             
         border: none !important;
-        box-shadow: 0 4px 6px rgba(255, 152, 0, 0.3) !important; /* 橘色發光陰影 */
+        box-shadow: 0 4px 6px rgba(255, 152, 0, 0.3) !important; 
         transition: all 0.2s ease;
     }
-    
-    /* 滑鼠移到按鈕上時的特殊動態效果 */
     .stButton button:hover {
-        background-color: #F57C00 !important;  /* 顏色變深一點點 */
-        transform: translateY(-2px) !important; /* 微微向上浮起 */
+        background-color: #F57C00 !important;  
+        transform: translateY(-2px) !important; 
         box-shadow: 0 6px 12px rgba(255, 152, 0, 0.4) !important;
     }
     
@@ -127,6 +125,20 @@ st.markdown("""
         border-radius: 8px;
         margin-bottom: 15px !important; 
     }
+
+    /* 🎯 核心修改：將免責聲明強行固定在網頁右下角，不影響主要內容閱讀 */
+    .footer-disclaimer {
+        position: fixed;
+        bottom: 10px;
+        right: 20px;
+        font-size: 13px !important;
+        color: #94A3B8 !important;  /* 採用優雅的淡灰色小字 */
+        background-color: rgba(248, 250, 252, 0.8); /* 半透明背景，防止擋住卡片 */
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-family: sans-serif;
+        z-index: 999;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -135,8 +147,8 @@ st.markdown("""
 # 頂部精美招牌
 st.markdown("""
     <div class="app-header">
-        <p class="main-title">📱Smart Reading</p>
-        <p class="sub-title"> Break down text • Listen sentence by sentence</p>
+        <p class="main-title">📱 Smart Reading Buddy</p>
+        <p class="sub-title">🤖 Break down text • Listen sentence by sentence • Master English easily!</p>
     </div>
 """, unsafe_allow_html=True)
 
@@ -178,3 +190,10 @@ if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
             
     else:
         st.warning("Please enter some English sentences first!")
+
+# 🎯 渲染右下角免責聲明
+st.markdown("""
+    <div class="footer-disclaimer">
+        Powered by Google Translate. Content is for reference only and may not be perfect.
+    </div>
+""", unsafe_allow_html=True)
