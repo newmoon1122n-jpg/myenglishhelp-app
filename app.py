@@ -55,12 +55,12 @@ st.markdown("""
         display: block;
     }
 
-    /* 🎯 核心修改：把聲明的顏色改成極其醒目的紅色 (#EF4444) */
+    /* 置頂紅色聲明的樣式 */
     .input-disclaimer {
         font-size: 15px !important;
-        color: #EF4444 !important;    /* 亮眼、警告感十足的鮮紅色 */
-        font-weight: 700 !important;   /* 將文字加粗，更明顯 */
-        font-style: italic;           /* 保持斜體 */
+        color: #EF4444 !important;    
+        font-weight: 700 !important;   
+        font-style: italic;           
         margin-bottom: 15px !important;
         display: block;
     }
@@ -136,6 +136,22 @@ st.markdown("""
         border-radius: 8px;
         margin-bottom: 15px !important; 
     }
+
+    /* 🎯 核心修改：將 MACAOMAMASUE 專屬簽名固定在網頁的最右下角 */
+    .author-signature {
+        position: fixed;
+        bottom: 12px;
+        right: 20px;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        color: #64748B !important;  /* 採用優雅的內斂深灰色 */
+        background-color: rgba(248, 250, 252, 0.85); /* 半透明底色，不突兀 */
+        padding: 4px 10px;
+        border-radius: 20px;        /* 膠囊形圓角，非常有質感 */
+        border: 1px solid #CBD5E1;   /* 淡淡的細邊框 */
+        font-family: sans-serif;
+        z-index: 999;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -144,13 +160,13 @@ st.markdown("""
 # 頂部精美招牌
 st.markdown("""
     <div class="app-header">
-        <p class="main-title">📱Smart Reading</p>
-        <p class="sub-title">Break down text • Listen sentence by sentence</p>
+        <p class="main-title">📱 Smart Reading Buddy</p>
+        <p class="sub-title">🤖 Break down text • Listen sentence by sentence • Master English easily!</p>
     </div>
 """, unsafe_allow_html=True)
 
 # 置頂紅色免責聲明
-st.markdown('<span class="input-disclaimer">Powered by Google Translate. Content is for reference only and may not be perfect.</span>', unsafe_allow_html=True)
+st.markdown('<span class="input-disclaimer">⚠️ Powered by Google Translate. Content is for reference only and may not be perfect.</span>', unsafe_allow_html=True)
 
 # 輸入提示標題
 st.markdown('<p class="input-label">✍️ Paste your English text below:</p>', unsafe_allow_html=True)
@@ -191,3 +207,10 @@ if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
             
     else:
         st.warning("Please enter some English sentences first!")
+
+# 🎯 渲染最右下角的專屬作者簽名
+st.markdown("""
+    <div class="author-signature">
+        ✨ This website was crafted with AI by MACAOMAMASUE.
+    </div>
+""", unsafe_allow_html=True)
