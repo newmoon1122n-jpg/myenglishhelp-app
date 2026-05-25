@@ -131,4 +131,32 @@ st.write("") # 留白
 # 啟動按鈕
 if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
     if text_input.strip():
-        # 按句號、問號、感嘆號拆分
+        # 按句號、問號、感嘆號拆分句子
+        sentences = [s.strip() for s in text_input.replace('?', '.').replace('!', '.').split('.') if s.strip()]
+        
+        st.success(f"🎉 Awesome! We found {len(sentences)} sentences for you. Let's practice:")
+        
+        for i, sentence in enumerate(sentences):
+            full_sentence = sentence + "."
+            # 翻譯
+            translated = translate_text(full_sentence)
+            
+            # 用精美的卡片包裹英文與中文
+            st.markdown(f"""
+                <div class="sentence-card">
+                    <div class="card-index">Sentence {i+1}</div>
+                    <div class="english-text">{full_sentence}</div>
+                    <div class="chinese-text">💡 {translated}</div>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            # 語音播放條緊跟在卡片下方
+            try:
+                tts = gTTS(text=full_sentence, lang='en', slow=False)
+                tts.save(f"sentence_{i}.mp3")
+                st.audio(f"sentence_{i}.mp3", format="audio/mp3")
+            except Exception:
+                st.warning("Audio generation slightly delayed...")
+            
+    else:
+        st.warning("Please enter some English sentences first!")
