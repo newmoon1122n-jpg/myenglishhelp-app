@@ -55,11 +55,12 @@ st.markdown("""
         display: block;
     }
 
-    /* 🎯 專屬修改：放在標題上方的聲明樣式，微調間距讓排版更好看 */
+    /* 🎯 核心修改：把聲明的顏色改成極其醒目的紅色 (#EF4444) */
     .input-disclaimer {
-        font-size: 14px !important;
-        color: #64748B !important;    /* 優雅的灰藍色 */
-        font-style: italic;          /* 斜體設計 */
+        font-size: 15px !important;
+        color: #EF4444 !important;    /* 亮眼、警告感十足的鮮紅色 */
+        font-weight: 700 !important;   /* 將文字加粗，更明顯 */
+        font-style: italic;           /* 保持斜體 */
         margin-bottom: 15px !important;
         display: block;
     }
@@ -148,9 +149,10 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# 🎯 調整後的完美順序：藍色招牌 -> 1. 英文聲明免責 -> 2. 輸入提示標題 -> 3. 黑粗框輸入框
+# 置頂紅色免責聲明
 st.markdown('<span class="input-disclaimer">⚠️ Powered by Google Translate. Content is for reference only and may not be perfect.</span>', unsafe_allow_html=True)
 
+# 輸入提示標題
 st.markdown('<p class="input-label">✍️ Paste your English text below:</p>', unsafe_allow_html=True)
 
 text_input = st.text_area("", height=180, placeholder="Once upon a time, there was a smart tool that helped students learn...")
