@@ -23,6 +23,24 @@ st.markdown("""
         background-color: #F8FAFC;
     }
     
+    /* 🎯 核心修改：將 MACAOMAMASUE 專屬簽名做成網頁 Logo，固定在左上角 */
+    .author-logo {
+        position: absolute;
+        top: -15px;             /* 往上提，緊貼頂部 */
+        left: 0px;              /* 靠最左邊 */
+        font-size: 12px !important;
+        font-weight: 700 !important;
+        color: #1E4ED8 !important;   /* 使用主題深藍色 */
+        background-color: #EFF6FF;  /* 淡藍色底色 */
+        padding: 5px 12px;
+        border-radius: 8px;        /* 漂亮的現代感小圓角 */
+        border: 2px solid #BFDBFE;  /* 藍色邊框 */
+        font-family: sans-serif;
+        letter-spacing: 0.5px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        z-index: 999;
+    }
+    
     /* 大標題設計：漸層色彩、陰影與生動圖示 */
     .app-header {
         background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
@@ -31,6 +49,7 @@ st.markdown("""
         box-shadow: 0 10px 15px -3px rgba(59, 131, 246, 0.2);
         margin-bottom: 25px;
         text-align: center;
+        position: relative; /* 讓左上角定位更精準 */
     }
     .main-title { 
         font-size: 38px !important; 
@@ -46,7 +65,7 @@ st.markdown("""
         opacity: 0.9;
     }
     
-    /* 提示文字樣式：字體再加粗 */
+    /* 提示文字樣式 */
     .input-label {
         font-size: 22px !important;
         font-weight: 900 !important;
@@ -70,147 +89,4 @@ st.markdown("""
         border: 6px solid #000000 !important;  
         border-radius: 14px !important;       
         background-color: #FFFFFF !important;  
-        font-size: 20px !important;            
-        color: #000000 !important;
-        font-weight: 500 !important;
-    }
-    .stTextArea textarea:focus {
-        border-color: #1D4ED8 !important;     
-        box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.4) !important;
-    }
-    
-    /* START 按鈕的字體和外觀大幅放大加粗 */
-    .stButton button {
-        font-size: 24px !important;           
-        font-weight: 800 !important;           
-        padding: 14px 28px !important;         
-        border-radius: 12px !important;        
-        background-color: #FF9800 !important;  
-        color: #FFFFFF !important;             
-        border: none !important;
-        box-shadow: 0 4px 6px rgba(255, 152, 0, 0.3) !important; 
-        transition: all 0.2s ease;
-    }
-    .stButton button:hover {
-        background-color: #F57C00 !important;  
-        transform: translateY(-2px) !important; 
-        box-shadow: 0 6px 12px rgba(255, 152, 0, 0.4) !important;
-    }
-    
-    /* 每一句英文卡片的精美設計 */
-    .sentence-card {
-        background-color: #FFFFFF;
-        padding: 24px;
-        border-radius: 16px;
-        border-left: 6px solid #3B82F6;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-        margin-top: 20px;
-        margin-bottom: 10px;
-        transition: transform 0.2s;
-    }
-    .sentence-card:hover {
-        transform: translateY(-2px);
-    }
-    
-    /* 卡片內文字樣式 */
-    .card-index {
-        font-size: 14px !important;
-        font-weight: bold !important;
-        color: #3B82F6 !important;
-        text-transform: uppercase;
-        margin-bottom: 4px;
-    }
-    .english-text { 
-        font-size: 26px !important; 
-        font-weight: 600 !important; 
-        color: #0F172A !important; 
-        line-height: 1.4 !important;
-        margin-bottom: 12px !important; 
-    }
-    .chinese-text { 
-        font-size: 20px !important; 
-        font-weight: 500 !important;
-        color: #475569 !important; 
-        background-color: #F1F5F9;
-        padding: 10px 14px;
-        border-radius: 8px;
-        margin-bottom: 15px !important; 
-    }
-
-    /* 🎯 核心修改：將 MACAONSK 專屬簽名固定在網頁的最右下角 */
-    .author-signature {
-        position: fixed;
-        bottom: 12px;
-        right: 20px;
-        font-size: 13px !important;
-        font-weight: 600 !important;
-        color: #64748B !important;  /* 採用優雅的內斂深灰色 */
-        background-color: rgba(248, 250, 252, 0.85); /* 半透明底色，不突兀 */
-        padding: 4px 10px;
-        border-radius: 20px;        /* 膠囊形圓角，非常有質感 */
-        border: 1px solid #CBD5E1;   /* 淡淡的細邊框 */
-        font-family: sans-serif;
-        z-index: 999;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-# --- 🎨 畫面正式渲染 🎨 ---
-
-# 頂部精美招牌
-st.markdown("""
-    <div class="app-header">
-        <p class="main-title">📱Smart Reading</p>
-        <p class="sub-title">Break down text • Listen sentence by sentence</p>
-    </div>
-""", unsafe_allow_html=True)
-
-# 置頂紅色免責聲明
-st.markdown('<span class="input-disclaimer">Powered by Google Translate. Content is for reference only and may not be perfect.</span>', unsafe_allow_html=True)
-
-# 輸入提示標題
-st.markdown('<p class="input-label">✍️ Paste your English text below:</p>', unsafe_allow_html=True)
-
-text_input = st.text_area("", height=180, placeholder="Once upon a time, there was a smart tool that helped students learn...")
-
-st.write("") # 留白
-
-# 啟動按鈕
-if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
-    if text_input.strip():
-        # 按句號、問號、感嘆號拆分句子
-        sentences = [s.strip() for s in text_input.replace('?', '.').replace('!', '.').split('.') if s.strip()]
-        
-        st.success(f"🎉 Awesome! We found {len(sentences)} sentences for you. Let's practice:")
-        
-        for i, sentence in enumerate(sentences):
-            full_sentence = sentence + "."
-            # 翻譯
-            translated = translate_text(full_sentence)
-            
-            # 用精美的卡片包裹英文與中文
-            st.markdown(f"""
-                <div class="sentence-card">
-                    <div class="card-index">Sentence {i+1}</div>
-                    <div class="english-text">{full_sentence}</div>
-                    <div class="chinese-text">💡 {translated}</div>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            # 語音播放條緊跟在卡片下方
-            try:
-                tts = gTTS(text=full_sentence, lang='en', slow=False)
-                tts.save(f"sentence_{i}.mp3")
-                st.audio(f"sentence_{i}.mp3", format="audio/mp3")
-            except Exception:
-                st.warning("Audio generation slightly delayed...")
-            
-    else:
-        st.warning("Please enter some English sentences first!")
-
-# 🎯 渲染最右下角的專屬作者簽名
-st.markdown("""
-    <div class="author-signature">
-        ✨ This website was crafted with AI by MACAONSK.
-    </div>
-""", unsafe_allow_html=True)
+        font-size: 20px !important;
