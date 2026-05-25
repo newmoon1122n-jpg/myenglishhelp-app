@@ -129,7 +129,7 @@ text_input = st.text_area("", height=180, placeholder="Once upon a time, there w
 st.write("") # 留白
 
 # 啟動按鈕
-if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
+if st.button("🚀 Start", use_container_width=True):
     if text_input.strip():
         # 按句號、問號、感嘆號拆分句子
         sentences = [s.strip() for s in text_input.replace('?', '.').replace('!', '.').split('.') if s.strip()]
