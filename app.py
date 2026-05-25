@@ -148,7 +148,7 @@ st.markdown("""
 st.markdown("""
     <div class="app-header">
         <p class="main-title">📱 Smart Reading Buddy</p>
-        <p class="sub-title">🤖 Break down text • Listen sentence by sentence • Master English easily!</p>
+        <p class="sub-title"> Break down text • Listen sentence by sentence </p>
     </div>
 """, unsafe_allow_html=True)
 
