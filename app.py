@@ -54,20 +54,38 @@ st.markdown("""
         margin-bottom: 12px;
     }
 
-    /* 🎯 終極修改：把邊框加粗到 6 像素純黑 */
+    /* 🎯 輸入框：6 像素純黑超粗邊框 */
     .stTextArea textarea {
-        border: 6px solid #000000 !important;  /* 6像素！極致純黑超粗邊框 */
-        border-radius: 14px !important;       /* 稍微加大圓角更和諧 */
-        background-color: #FFFFFF !important;  /* 保持背景純白 */
-        font-size: 20px !important;            /* 輸入框內字體也同步加大 */
+        border: 6px solid #000000 !important;  
+        border-radius: 14px !important;       
+        background-color: #FFFFFF !important;  
+        font-size: 20px !important;            
         color: #000000 !important;
         font-weight: 500 !important;
     }
-    
-    /* 當學生點擊輸入框時，保持黑粗框，但加入醒目的深藍色發光 */
     .stTextArea textarea:focus {
-        border-color: #1D4ED8 !important;     /* 點擊時變成醒目的深藍色粗框 */
+        border-color: #1D4ED8 !important;     
         box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.4) !important;
+    }
+    
+    /* 🎯 核心修改：把 START 按鈕的字體和外觀大幅放大加粗 */
+    .stButton button {
+        font-size: 24px !important;           /* 字體加大到 24px */
+        font-weight: 800 !important;           /* 字體超級加粗 */
+        padding: 14px 28px !important;         /* 增加按鈕內襯，讓按鈕變大顆 */
+        border-radius: 12px !important;        /* 圓角設計 */
+        background-color: #FF9800 !important;  /* 改成活力亮橘色，更吸引學生 */
+        color: #FFFFFF !important;             /* 白色文字 */
+        border: none !important;
+        box-shadow: 0 4px 6px rgba(255, 152, 0, 0.3) !important; /* 橘色發光陰影 */
+        transition: all 0.2s ease;
+    }
+    
+    /* 滑鼠移到按鈕上時的特殊動態效果 */
+    .stButton button:hover {
+        background-color: #F57C00 !important;  /* 顏色變深一點點 */
+        transform: translateY(-2px) !important; /* 微微向上浮起 */
+        box-shadow: 0 6px 12px rgba(255, 152, 0, 0.4) !important;
     }
     
     /* 每一句英文卡片的精美設計 */
@@ -85,7 +103,7 @@ st.markdown("""
         transform: translateY(-2px);
     }
     
-    /* 卡片內文字樣式：特大字體與清晰行距 */
+    /* 卡片內文字樣式 */
     .card-index {
         font-size: 14px !important;
         font-weight: bold !important;
@@ -129,7 +147,7 @@ text_input = st.text_area("", height=180, placeholder="Once upon a time, there w
 st.write("") # 留白
 
 # 啟動按鈕
-if st.button("🚀 Start", use_container_width=True):
+if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
     if text_input.strip():
         # 按句號、問號、感嘆號拆分句子
         sentences = [s.strip() for s in text_input.replace('?', '.').replace('!', '.').split('.') if s.strip()]
