@@ -6,6 +6,27 @@ import urllib.request
 import re
 import io
 
+# 🚀 引入 NLTK 核心庫
+import nltk
+from nltk.tokenize import word_tokenize
+from nltk.tag import pos_tag
+from nltk.stem import WordNetLemmatizer
+
+# 🎯 自動下載必備的語法大腦模型（加入快取，避免重複下載變慢）
+@st.cache_resource
+def initialize_nltk():
+    required_packages = [
+        'punkt', 'punkt_tab', 'averaged_perceptron_tagger', 
+        'averaged_perceptron_tagger_eng', 'wordnet', 'omw-1.4'
+    ]
+    for package in required_packages:
+        try:
+            nltk.download(package, quiet=True)
+        except Exception:
+            pass
+
+initialize_nltk()
+
 # 🎯 Web Configuration
 st.set_page_config(
     page_title="Smart Reading Buddy",
@@ -13,7 +34,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 官方輕量翻譯函數（用於句子與單字翻譯）
+# 官方輕量翻譯函數
 def translate_text(text, target_lang='zh-TW'):
     try:
         url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={target_lang}&dt=t&q={urllib.parse.quote(text)}"
@@ -24,13 +45,17 @@ def translate_text(text, target_lang='zh-TW'):
     except Exception:
         return "無法取得翻譯"
 
-# 🎯 輕量化句內生字過濾：精準鎖定四大詞性 (Noun, Verb, Adjective, Adverb)
+# 🎯 專業級 NLTK 句內詞性精確過濾
 def extract_sentence_vocab(sentence_text):
-    # 清理標點符號並拆分單字
-    clean_text = re.sub(r'[^\w\s]', '', sentence_text)
-    words = clean_text.split()
+    if not sentence_text.strip():
+        return []
+        
+    # 1. 使用 NLTK 進行標準分詞與上下文詞性標註
+    tokens = word_tokenize(sentence_text)
+    tagged_words = pos_tag(tokens)
+    lemmatizer = WordNetLemmatizer()
     
-    # 全面排除常見的基础高頻字（避免干擾實詞學習）
+    # 排除基礎高頻虛詞
     ignore_words = {
         'the', 'a', 'an', 'to', 'of', 'at', 'in', 'on', 'by', 'for', 'from', 'with', 'and', 'but', 
         'or', 'so', 'because', 'if', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'this', 'that', 
@@ -40,163 +65,36 @@ def extract_sentence_vocab(sentence_text):
     vocab_list = []
     seen_words = set()
     
-    for word in words:
+    for word, tag in tagged_words:
         w_lower = word.lower()
+        
         # 基本過濾
         if len(w_lower) < 2 or w_lower in ignore_words or not w_lower.isalpha() or w_lower in seen_words:
             continue
             
-        seen_words.add(w_lower)
-        
-        # 💡 依據字尾特徵進行高精度四大詞性智能分類
+        # 💡 NLTK 精確標籤對應與原型還原 (Lemmatization)
         pos = None
-        
-        # 1. 副詞 (Adverb)
-        if w_lower.endswith('ly'):
-            pos = "adv."
-        # 2. 名詞 (Noun)
-        elif w_lower.endswith(('tion', 'ness', 'ment', 'ity', 'ship', 'er', 'or', 'ist', 'ism', 'ance', 'ence', 'logy')):
+        if tag.startswith('NN'):        # 名詞 Noun (NN, NNS, NNP, NNPS)
             pos = "n."
-        # 3. 形容詞 (Adjective)
-        elif w_lower.endswith(('ful', 'less', 'able', 'ible', 'ive', 'ous', 'ish', 'al', 'ic', 'ant', 'ent')):
-            pos = "adj."
-        # 4. 動詞 (Verb)
-        elif w_lower.endswith(('ize', 'ify', 'ate', 'en')):
+            base_word = lemmatizer.lemmatize(w_lower, pos='n')
+        elif tag.startswith('VB'):      # 動詞 Verb (VB, VBD, VBG, VBN, VBP, VBZ)
             pos = "v."
-        # 5. 時態或常見後綴處理（動詞或形容詞偏向）
-        elif w_lower.endswith(('ed', 'ing')):
-            pos = "v./adj."
-        else:
-            # 🔍 如果字尾不符合以上特徵，則進行語義長度或常見模式過濾
-            # 這裡作為通用名詞/動詞備用，確保生字不漏網，但排除連詞與介詞等虛詞
-            if w_lower in ['and', 'but', 'or', 'because', 'although', 'if', 'with', 'under', 'about', 'between', 'through']:
-                continue  # 徹底無情排除連詞、介詞
-            pos = "n./v."  # 一般實詞歸類為名詞/動詞
+            base_word = lemmatizer.lemmatize(w_lower, pos='v')
+        elif tag.startswith('JJ'):      # 形容詞 Adjective (JJ, JJR, JJS)
+            pos = "adj."
+            base_word = lemmatizer.lemmatize(w_lower, pos='a')
+        elif tag.startswith('RB'):      # 副詞 Adverb (RB, RBR, RBS)
+            pos = "adv."
+            base_word = lemmatizer.lemmatize(w_lower, pos='r')
             
-        # 再次確保過濾掉未識別出的代名詞或介詞
-        if w_lower in ['my', 'your', 'his', 'her', 'its', 'our', 'their', 'me', 'him', 'them', 'us', 'who', 'whom', 'whose']:
+        # 🚫 如果不是四大實詞，直接無情排除
+        if not pos:
             continue
             
-        # 翻譯核心生字
-        chinese_meaning = translate_text(w_lower)
-        if chinese_meaning.lower() == w_lower:
+        # 避免原型還原後重複
+        if base_word in seen_words:
             continue
-            
-        vocab_list.append({"word": w_lower, "pos": pos, "meaning": chinese_meaning})
+        seen_words.add(base_word)
         
-    return vocab_list
-
-
-# --- 🚀 網頁精美視覺設計 (CSS) 🚀 ---
-st.markdown("""
-   <style>
-   #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
-   .stAppDeployButton {display: none !important;} div[data-testid="stDecoration"] {display: none !important;}
- 
-   .stApp { background-color: #F8FAFC; }
-    
-   .author-logo {
-       position: absolute; top: -15px; left: 0px;              
-       font-size: 12px !important; font-weight: 700 !important;
-       color: #1E4ED8 !important; background-color: #EFF6FF;  
-       padding: 5px 12px; border-radius: 8px; border: 2px solid #BFDBFE;  
-       font-family: sans-serif; letter-spacing: 0.5px; z-index: 999;
-   }
-    
-   .app-header {
-       background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
-       padding: 30px; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(59, 131, 246, 0.2);
-       margin-bottom: 25px; text-align: center; position: relative; 
-   }
-   .main-title { font-size: 38px !important; font-weight: 800 !important; color: #FFFFFF !important; margin: 0px !important; letter-spacing: 1px; }
-   .sub-title { font-size: 16px !important; color: #E0F2FE !important; margin-top: 8px !important; opacity: 0.9; }
-   .input-label { font-size: 22px !important; font-weight: 900 !important; color: #000000 !important; margin-bottom: 12px !important; display: block; }
-   .input-disclaimer { font-size: 15px !important; color: #EF4444 !important; font-weight: 700 !important; font-style: italic; margin-bottom: 15px !important; display: block; }
- 
-   .stTextArea textarea {
-       border: 6px solid #000000 !important; border-radius: 14px !important;      
-       background-color: #FFFFFF !important; font-size: 20px !important; color: #000000 !important; font-weight: 500 !important;
-   }
-   
-   .stButton button {
-       font-size: 24px !important; font-weight: 800 !important; padding: 14px 28px !important; border-radius: 12px !important;       
-       background-color: #FF9800 !important; color: #FFFFFF !important; border: none !important;
-       box-shadow: 0 4px 6px rgba(255, 152, 0, 0.3) !important;
-   }
-    
-   .sentence-card {
-       background-color: #FFFFFF; padding: 24px; border-radius: 16px; border-left: 6px solid #3B82F6;
-       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-top: 20px; margin-bottom: 5px;
-   }
-   .card-index { font-size: 14px !important; font-weight: bold !important; color: #3B82F6 !important; text-transform: uppercase; margin-bottom: 4px; }
-   .english-text { font-size: 26px !important; font-weight: 600 !important; color: #0F172A !important; line-height: 1.4 !important; margin-bottom: 12px !important; }
-   .chinese-text { font-size: 20px !important; font-weight: 500 !important; color: #475569 !important; background-color: #F1F5F9; padding: 10px 14px; border-radius: 8px; margin-bottom: 5px !important; }
-
-   .vocab-box { background-color: #FFFDF5; border: 1px dashed #FFD54F; border-radius: 10px; padding: 12px 16px; margin-top: 5px; margin-bottom: 25px; }
-   .vocab-title { font-size: 15px; font-weight: bold; color: #D84315; margin-bottom: 6px; }
-   .vocab-tag {
-       display: inline-block; background-color: #FFF3E0; color: #E65100; padding: 4px 10px; border-radius: 6px;
-       font-size: 15px; font-weight: bold; margin-right: 8px; margin-bottom: 8px; border: 1px solid #FFE0B2;
-   }
-   .vocab-pos { color: #78909C; font-size: 13px; font-style: italic; }
-   </style>
-""", unsafe_allow_html=True)
- 
-# --- 🎨 畫面正式渲染 🎨 ---
-st.markdown('<div class="author-logo">🚀 AI Crafted by MACAOCMM</div>', unsafe_allow_html=True)
- 
-st.markdown("""
-   <div class="app-header">
-       <p class="main-title">📱 Smart Reading</p>
-       <p class="sub-title">Break down text • Learn step by step</p>
-   </div>
-""", unsafe_allow_html=True)
- 
-st.markdown('<span class="input-disclaimer">Powered by Google Translate. Content is for reference only and may not be perfect.</span>', unsafe_allow_html=True)
-st.markdown('<p class="input-label">✍️ Paste your English text below:</p>', unsafe_allow_html=True)
- 
-text_input = st.text_area("", height=180, placeholder="Once upon a time, there was a smart tool that helped students learn...")
-st.write("") 
- 
-if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
-   if text_input.strip():
-       sentences = [s.strip() for s in text_input.replace('?', '.').replace('!', '.').split('.') if s.strip()]
-       
-       st.success(f"🎉 Awesome! We found {len(sentences)} sentences for you. Let's practice:")
-       
-       for i, sentence in enumerate(sentences):
-           full_sentence = sentence + "."
-           translated = translate_text(full_sentence)
-           sentence_vocabs = extract_sentence_vocab(full_sentence)
-           
-           # 1️⃣ 第一步：列句子（英文與中文翻譯卡片）
-           st.markdown(f"""
-                <div class="sentence-card">
-                    <div class="card-index">Sentence {i+1}</div>
-                    <div class="english-text">{full_sentence}</div>
-                    <div class="chinese-text">💡 {translated}</div>
-                </div>
-           """, unsafe_allow_html=True)
-           
-           # 2️⃣ 第二步：句子的發音條（緊跟在卡片下方）
-           try:
-               tts = gTTS(text=full_sentence, lang='en', slow=False)
-               fp = io.BytesIO()
-               tts.write_to_fp(fp)
-               fp.seek(0)
-               st.audio(fp, format="audio/mp3")
-           except Exception:
-               st.warning("Audio generation slightly delayed...")
-           
-           # 3️⃣ 第三步：最後呈現精確的四大詞性生詞清單
-           if sentence_vocabs:
-               vocab_html = '<div class="vocab-box"><div class="vocab-title">🔑 Key Vocabulary Focus：</div>'
-               for item in sentence_vocabs:
-                   vocab_html += f'<span class="vocab-tag">📌 {item["word"]} <span class="vocab-pos">({item["pos"]})</span>：{item["meaning"]}</span>'
-               vocab_html += '</div>'
-               st.markdown(vocab_html, unsafe_allow_html=True)
-           else:
-               st.write("")
-           
-   else:
-       st.warning("Please enter some English sentences first!")
+        # 翻譯核心生字（使用還原後的主幹單字，查字典更精準）
+        chinese_meaning = translate_text(
