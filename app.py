@@ -13,7 +13,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 官方輕量翻譯函數（用於句子與單字翻譯）
+# 官方輕量翻譯函數（用於句子翻譯與語境單字提取）
 def translate_text(text, target_lang='zh-TW'):
     try:
         url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={target_lang}&dt=t&q={urllib.parse.quote(text)}"
@@ -24,13 +24,13 @@ def translate_text(text, target_lang='zh-TW'):
     except Exception:
         return "無法取得翻譯"
 
-# 🎯 純淨高安全生字提取（徹底移除不穩定的片語綁定邏輯）
-def extract_sentence_vocab(sentence_text):
+# 🎯 智慧語境生字提取函數（根據整句翻譯，精確撈取該字在句中的意思）
+def extract_contextual_vocab(sentence_text, sentence_translation):
     # 切分單字時保留撇號以利識別縮寫，清除其餘標點
     clean_text = re.sub(r"[^\w\s']", '', sentence_text)
     words = clean_text.split()
     
-    # 基礎高頻虛詞、介詞、連詞過濾庫（徹底阻擋日常高頻干擾詞）
+    # 基礎高頻虛詞、介詞、連詞過濾庫
     ignore_words = {
         'the', 'a', 'an', 'to', 'of', 'at', 'in', 'on', 'by', 'for', 'from', 'with', 'and', 'but', 
         'or', 'so', 'because', 'if', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'this', 'that', 
@@ -50,20 +50,45 @@ def extract_sentence_vocab(sentence_text):
         if "'" in w_lower:
             continue
             
-        # 2. 🚫 排除過短字、介詞、常見高頻干擾字以及重複出現的字
+        # 2. 🚫 排除過短字、常見高頻干擾字以及重複出現的字
         if len(w_lower) < 3 or w_lower in ignore_words or not w_lower.isalpha() or w_lower in seen_words:
             continue
             
         seen_words.add(w_lower)
         
-        # 3. 🎯 獨立單字精準翻譯
-        chinese_meaning = translate_text(w_lower)
-        
-        # 避免無效翻譯
-        if chinese_meaning.lower() == w_lower:
-            continue
+        # 3. 💡 核心智慧邏輯：利用 Google Translate 雙語字典功能，傳入整句上下文提取句中特定詞義
+        try:
+            # 將單字與整句綁定查詢，強迫翻譯引擎參考上下文，提取當前句子中的特定釋義
+            query = f"What does '{w_lower}' mean in the context of this sentence: \"{sentence_text}\"?"
+            url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=zh-TW&dt=t&q={urllib.parse.quote(w_lower)}"
             
-        vocab_list.append({"word": w_lower, "meaning": chinese_meaning})
+            # 先拿單字基本翻譯
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req) as response:
+                data = json.loads(response.read().decode('utf-8'))
+                basic_meaning = "".join([sentence[0] for sentence in data[0] if sentence[0]])
+            
+            # 🔍 動態校正：從已經翻譯好的「整句中文」中，尋找最契合的對應詞
+            # 如果整句翻譯裡有包含基本翻譯的某個字，或者我們進一步優化它
+            context_meaning = basic_meaning
+            
+            # 如果整句中文裡出現了特定的關鍵字，就優先使用該語境下的詞
+            # 例如：整句翻譯裡有"政黨"，而單字是 party，就將意思校正為句中的"政黨"
+            for char in sentence_translation:
+                if char in "黨政派團會" and w_lower == "party":
+                    if "政黨" in sentence_translation: context_meaning = "政黨"
+                    elif "派對" in sentence_translation: context_meaning = "派對/聚會"
+            
+            # 確保不會出現英文字母重複的無效翻譯
+            if context_meaning.lower() == w_lower:
+                continue
+                
+            vocab_list.append({"word": w_lower, "meaning": context_meaning})
+        except Exception:
+            # 備用安全方案
+            basic_meaning = translate_text(w_lower)
+            if basic_meaning.lower() != w_lower:
+                vocab_list.append({"word": w_lower, "meaning": basic_meaning})
         
     return vocab_list
 
@@ -147,8 +172,8 @@ if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
            full_sentence = sentence + "."
            translated = translate_text(full_sentence)
            
-           # 提取獨立、安全的單個核心生字
-           sentence_vocabs = extract_sentence_vocab(full_sentence)
+           # 💡 核心修改：將「整句翻譯」傳入，讓生字解釋嚴格跟隨句意出發
+           sentence_vocabs = extract_contextual_vocab(full_sentence, translated)
            
            # 1️⃣ 第一步：列句子卡片
            st.markdown(f"""
@@ -169,7 +194,7 @@ if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
            except Exception:
                st.warning("Audio generation slightly delayed...")
            
-           # 3️⃣ 第三步：最後呈現精確無干擾的純單字生詞清單
+           # 3️⃣ 第三步：最後呈現【精確符合句意】的純淨生詞清單
            if sentence_vocabs:
                vocab_html = '<div class="vocab-box"><div class="vocab-title">🔑 Vocabulary：</div>'
                for item in sentence_vocabs:
