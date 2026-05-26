@@ -192,7 +192,7 @@ st.markdown('<div class="author-logo">🚀 AI Crafted by MACAOCMM</div>', unsafe
 st.markdown("""
     <div class="app-header">
         <p class="main-title">📱Smart Reading</p>
-        <p class="sub-title">Break down text • Listen sentence by sentence • Vocabulary</p>
+        <p class="sub-title">Break down text • Listen sentence by sentence</p>
     </div>
 """, unsafe_allow_html=True)
 
@@ -218,9 +218,52 @@ if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
                 <div class="sentence-card">
                     <div style="font-size:13px; color:#3B82F6; font-weight:bold; text-transform:uppercase; margin-bottom:4px;">Sentence {i+1}</div>
                     <div class="english-text">{full_sentence}</div>
-                    <div class="chinese-text">💡 中文翻譯：{translated}</div>
+                    <div class="chinese-text">💡{translated}</div>
                 </div>
             """, unsafe_allow_html=True)
             
             try:
-                tts = gTTS(text=
+                tts = gTTS(text=full_sentence, lang='en', slow=False)
+                tts.save(f"sentence_{i}.mp3")
+                st.audio(f"sentence_{i}.mp3", format="audio/mp3")
+            except Exception:
+                st.text("Loading audio tool...")
+        
+        st.write("---")
+        
+        # 2. 🎯 Bottom Feature: Advanced 8-POS Grammar Explorer
+        st.markdown("### 🔍 Grammar Focus: 8 Parts of Speech & Phrases")
+        st.write("Click on any word category below to explore the words, then **click the word button to listen to its pronunciation!**")
+        
+        # Extract lists
+        pos_lists, phrases = extract_eight_pos(text_input)
+        
+        # Define 8 Expanders (Buttons)
+        all_categories = [
+            ("🔷 Noun", pos_lists["Noun"]),
+            ("🟡 Pronoun", pos_lists["Pronoun"]),
+            ("🟢 Verb", pos_lists["Verb"]),
+            ("🔮 Adjective", pos_lists["Adjective"]),
+            ("🔶 Adverb", pos_lists["Adverb"]),
+            ("🚀 Phrase", phrases),
+            ("🔗 Conjunction", pos_lists["Conjunction"]),
+            ("📢 Interjection", pos_lists["Interjection"])
+        ]
+        
+        # Render the 8 category blocks sequentially
+        for title, word_list in all_categories:
+            with st.expander(f"{title} ({len(word_list)})", expanded=False):
+                if word_list:
+                    html_content = '<div style="margin-top: 10px;">'
+                    for word in word_list:
+                        # Translate individual word
+                        trans = translate_text(word)
+                        # Create custom HTML button linked to JavaScript text-to-speech engine
+                        html_content += f'<button class="audio-word-btn" onclick="speakWord(\'{word}\')">🔊 {word} ({trans})</button>'
+                    html_content += '</div>'
+                    st.markdown(html_content, unsafe_allow_html=True)
+                else:
+                    st.write("No vocabulary detected in this category.")
+            
+    else:
+        st.error("Please enter some English sentences first!")
