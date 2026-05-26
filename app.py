@@ -23,60 +23,83 @@ def translate_text(text, target_lang='zh-TW'):
     except Exception:
         return "Translation temporarily unavailable..."
 
-# 🎯 Smart Part-of-Speech Extractor (Nouns, Verbs, Adjectives, Adverbs)
-def extract_pos_tags(text):
-    # Common functional stop words to exclude from study list
-    stop_words = {
-        'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them',
-        'my', 'your', 'his', 'its', 'our', 'their', 'this', 'that', 'these', 'those',
-        'am', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had',
-        'do', 'does', 'did', 'can', 'could', 'will', 'would', 'shall', 'should', 'may', 'might', 'must',
-        'the', 'and', 'but', 'not', 'for', 'with', 'from', 'about', 'into', 'there', 'here', 'thing', 'things',
-        'when', 'where', 'why', 'how', 'who', 'which'
-    }
+# 🎯 Advanced 8-Category Part-of-Speech & Phrase Extractor
+def extract_eight_pos(text):
+    # Prepare text cleaning
+    cleaned_text = re.sub(r'[.,!?";:()\]\[]', ' ', text)
+    words_raw = cleaned_text.split()
     
-    # 1. Detect and exclude proper nouns (names like John, Mary)
+    # 1. Extract Phrases (Basic 2-3 word combinations)
+    # Looking for common patterns like: verb+prep, adj+noun, prep+noun
+    phrase_matches = re.findall(r'\b(?:look after|look for|pick up|get up|run away|once upon a time|a lot of|depend on|laugh at|listen to|go to|set up|turn off|turn on|put on|take off)\b', text.lower())
+    phrases = sorted(list(set(phrase_matches)))
+    
+    # Remove phrase words from regular word list to avoid duplicate marking
+    phrase_blobs = " ".join(phrases)
+    
+    # Detect and exclude proper nouns (names like John, Mary)
     proper_nouns = set(re.findall(r'\b[A-Z][a-z]+\b', text))
     sentence_starts = set(re.findall(r'(?:^|[.!?]\s+)([A-Z][a-z]+)', text))
     names_to_exclude = {name.lower() for name in (proper_nouns - sentence_starts)}
-
-    # Find all words with length >= 3
-    all_words = re.findall(r'\b[a-zA-Z]{3,}\b', text)
     
-    nouns = set()
-    verbs = set()
-    adjectives = set()
-    adverbs = set()
+    # Distinct categorization sets
+    categories = {
+        "Noun": set(), "Pronoun": set(), "Verb": set(), "Adjective": set(),
+        "Adverb": set(), "Conjunction": set(), "Interjection": set()
+    }
     
-    # Advanced word suffix rules for classification
+    # Grammar Rules Database
+    pronouns = {'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them', 'my', 'your', 'his', 'its', 'our', 'their', 'this', 'that', 'these', 'those', 'who', 'whom', 'which', 'what'}
+    conjunctions = {'and', 'but', 'or', 'so', 'because', 'although', 'if', 'unless', 'since', 'until', 'while', 'as', 'than', 'yet', 'nor'}
+    interjections = {'oh', 'wow', 'oops', 'hey', 'alas', 'hurrah', 'ah', 'hello', 'hi', 'yuck', 'ouch'}
+    
     noun_suffixes = ('tion', 'sion', 'ment', 'ence', 'ance', 'ity', 'ness', 'ship', 'ism', 'ist', 'logy', 'ture', 'dom')
     verb_suffixes = ('ing', 'ed', 'ize', 'ify', 'ate', 'es')
     adj_suffixes = ('ful', 'less', 'able', 'ible', 'ive', 'ous', 'ish', 'ant', 'ent', 'ary', 'ic', 'al')
 
-    for word in all_words:
+    for word in words_raw:
         w_lower = word.lower()
-        if w_lower in stop_words or w_lower in names_to_exclude:
+        if len(w_lower) < 2 or w_lower in names_to_exclude or w_lower in phrase_blobs:
             continue
             
-        # 🔶 Classify Adverbs
-        if w_lower.endswith('ly'):
-            adverbs.add(w_lower)
-        # 🔴 Classify Adjectives
+        if w_lower in pronouns:
+            categories["Pronoun"].add(w_lower)
+        elif w_lower in conjunctions:
+            categories["Conjunction"].add(w_lower)
+        elif w_lower in interjections:
+            categories["Interjection"].add(w_lower)
+        elif w_lower.endswith('ly'):
+            categories["Adverb"].add(w_lower)
         elif w_lower.endswith(adj_suffixes):
-            adjectives.add(w_lower)
-        # 🟢 Classify Verbs
+            categories["Adjective"].add(w_lower)
         elif w_lower.endswith(verb_suffixes):
-            verbs.add(w_lower)
-        # 🔵 Classify Nouns
+            categories["Verb"].add(w_lower)
         elif w_lower.endswith(noun_suffixes):
-            nouns.add(w_lower)
+            categories["Noun"].add(w_lower)
         else:
-            # Default fallback for shorter or unclassified words (Prioritize as nouns for learning)
+            # Fallback optimization for remaining general words
             if len(w_lower) >= 4:
-                nouns.add(w_lower)
+                categories["Noun"].add(w_lower)
+                
+    return {k: sorted(list(v)) for k, v in categories.items()}, phrases
 
-    return sorted(list(nouns)), sorted(list(verbs)), sorted(list(adjectives)), sorted(list(adverbs))
-
+# 🎯 JavaScript Click-to-Speech Engine
+def inject_speech_script():
+    st.markdown("""
+        <script>
+        function speakWord(word) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel(); // Stop ongoing speech
+                var utterance = new SpeechSynthesisUtterance(word);
+                utterance.lang = 'en-US';
+                utterance.rate = 0.9; // Slightly slower for better learning clarity
+                window.speechSynthesis.speak(utterance);
+            } else {
+                alert('Audio playback not supported on this browser.');
+            }
+        }
+        </script>
+    """, unsafe_allow_html=True)
 
 # --- 🚀 UI/UX Precision CSS Design 🚀 ---
 st.markdown("""
@@ -105,7 +128,7 @@ st.markdown("""
         margin-bottom: 25px; text-align: center; position: relative; 
     }
     .main-title { font-size: 38px !important; font-weight: 800 !important; color: #FFFFFF !important; margin: 0px !important;}
-    .sub-title { font-size: 16px !important; color: #E0F2FE !important; margin-top: 8px !important; }
+    .sub-title { font-size: 15px !important; color: #E0F2FE !important; margin-top: 8px !important; }
     
     /* Input Labels and Disclaimers */
     .input-label { font-size: 22px !important; font-weight: 900 !important; color: #000000 !important; display: block; margin-bottom: 8px !important; }
@@ -132,36 +155,48 @@ st.markdown("""
     .english-text { font-size: 26px !important; font-weight: 600 !important; color: #0F172A !important; line-height: 1.4 !important; }
     .chinese-text { font-size: 20px !important; font-weight: 500 !important; color: #475569 !important; background-color: #F1F5F9; padding: 10px 14px; border-radius: 8px; margin-top: 8px; }
     
-    /* Grammar Analysis Box & Tags */
-    .analysis-box {
-        background-color: #FFFFFF; border: 3px solid #0EA5E9; padding: 22px; border-radius: 16px; margin-top: 15px;
+    /* Styled HTML Clickable Vocabulary Audio Cards */
+    .audio-word-btn {
+        display: inline-block;
+        background-color: #FFFFFF;
+        color: #1E293B;
+        border: 2px solid #E2E8F0;
+        padding: 8px 16px;
+        margin: 5px;
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
     }
-    .analysis-title { font-size: 20px !important; font-weight: 800 !important; margin-bottom: 12px; margin-top: 15px; }
-    .title-noun { color: #0284C7 !important; }
-    .title-verb { color: #15803D !important; }
-    .title-adj { color: #EC4899 !important; }
-    .title-adverb { color: #B45309 !important; }
-    
-    .tags-container { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
-    .tag-noun { background-color: #E0F2FE; color: #0369A1; padding: 6px 12px; border-radius: 8px; font-weight: 600; font-size: 16px; border: 1px solid #BAE6FD; }
-    .tag-verb { background-color: #DCFCE7; color: #15803D; padding: 6px 12px; border-radius: 8px; font-weight: 600; font-size: 16px; border: 1px solid #BBF7D0; }
-    .tag-adj { background-color: #FCE7F3; color: #9D174D; padding: 6px 12px; border-radius: 8px; font-weight: 600; font-size: 16px; border: 1px solid #FBCFE8; }
-    .tag-adverb { background-color: #FEF3C7; color: #92400E; padding: 6px 12px; border-radius: 8px; font-weight: 600; font-size: 16px; border: 1px solid #FDE68A; }
+    .audio-word-btn:hover {
+        background-color: #EFF6FF;
+        border-color: #3B82F6;
+        color: #2563EB;
+        transform: scale(1.05);
+    }
+    .audio-word-btn:active {
+        transform: scale(0.95);
+    }
     </style>
 """, unsafe_allow_html=True)
 
 # --- 🎨 UI Layout Rendering 🎨 ---
 
+# Inject Javascript Speak System
+inject_speech_script()
+
 st.markdown('<div class="author-logo">🚀 AI Crafted by MACAOCMM</div>', unsafe_allow_html=True)
 
 st.markdown("""
     <div class="app-header">
-        <p class="main-title">📱 Smart Reading Buddy</p>
-        <p class="sub-title">Bridge to Form 1 • Master English Textbooks Easily</p>
+        <p class="main-title">📱Smart Reading</p>
+        <p class="sub-title">Break down text • Listen sentence by sentence • Vocabulary</p>
     </div>
 """, unsafe_allow_html=True)
 
-st.markdown('<span class="input-disclaimer">⚠️ Powered by Google Translate. Content is for reference only.</span>', unsafe_allow_html=True)
+st.markdown('<span class="input-disclaimer">Powered by Google Translate. Content is for reference only.</span>', unsafe_allow_html=True)
 st.markdown('<p class="input-label">✍️ Paste your English textbook text below:</p>', unsafe_allow_html=True)
 
 text_input = st.text_area("", height=180, placeholder="Type or paste paragraphs from your Math, Science, or English textbooks here...")
@@ -188,68 +223,4 @@ if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
             """, unsafe_allow_html=True)
             
             try:
-                tts = gTTS(text=full_sentence, lang='en', slow=False)
-                tts.save(f"sentence_{i}.mp3")
-                st.audio(f"sentence_{i}.mp3", format="audio/mp3")
-            except Exception:
-                st.text("Loading audio tool...")
-        
-        st.write("---")
-        
-        # 2. 🎯 Bottom Feature: Grammar Analysis (Fully English Controlled Expansion)
-        st.markdown("### 🔍 Grammar Focus: Vocabulary Extractor")
-        st.write("Ready for a bigger challenge? Click below to extract key vocabulary categorized by parts of speech.")
-        
-        with st.expander("✨ Click to Extract Nouns, Verbs, Adjectives & Adverbs", expanded=False):
-            nouns, verbs, adjectives, adverbs = extract_pos_tags(text_input)
-            
-            st.markdown('<div class="analysis-box">', unsafe_allow_html=True)
-            
-            # 🔵 Nouns List
-            st.markdown('<div class="analysis-title title-noun">🔷 Core Nouns (名詞 - No Names)</div>', unsafe_allow_html=True)
-            if nouns:
-                st.markdown('<div class="tags-container">', unsafe_allow_html=True)
-                for noun in nouns:
-                    trans_n = translate_text(noun)
-                    st.markdown(f'<span class="tag-noun">{noun} ({trans_n})</span>', unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
-            else:
-                st.write("No major nouns detected.")
-                
-            # 🟢 Verbs List
-            st.markdown('<div class="analysis-title title-verb">🟢 Action Verbs (動詞)</div>', unsafe_allow_html=True)
-            if verbs:
-                st.markdown('<div class="tags-container">', unsafe_allow_html=True)
-                for verb in verbs:
-                    trans_v = translate_text(verb)
-                    st.markdown(f'<span class="tag-verb">{verb} ({trans_v})</span>', unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
-            else:
-                st.write("No major verbs detected.")
-
-            # 💗 Adjectives List
-            st.markdown('<div class="analysis-title title-adj">🔮 Descriptive Adjectives (形容詞)</div>', unsafe_allow_html=True)
-            if adjectives:
-                st.markdown('<div class="tags-container">', unsafe_allow_html=True)
-                for adj in adjectives:
-                    trans_adj = translate_text(adj)
-                    st.markdown(f'<span class="tag-adj">{adj} ({trans_adj})</span>', unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
-            else:
-                st.write("No major adjectives detected.")
-                
-            # 🟡 Adverbs List
-            st.markdown('<div class="analysis-title title-adverb">🔶 Useful Adverbs (副詞)</div>', unsafe_allow_html=True)
-            if adverbs:
-                st.markdown('<div class="tags-container">', unsafe_allow_html=True)
-                for adverb in adverbs:
-                    trans_a = translate_text(adverb)
-                    st.markdown(f'<span class="tag-adverb">{adverb} ({trans_a})</span>', unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
-            else:
-                st.write("No major adverbs detected.")
-                
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-    else:
-        st.error("Please enter some English sentences first!")
+                tts = gTTS(text=
