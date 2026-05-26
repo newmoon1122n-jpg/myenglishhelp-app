@@ -12,19 +12,24 @@ from nltk.tokenize import word_tokenize
 from nltk.tag import pos_tag
 from nltk.stem import WordNetLemmatizer
 
-# 🎯 在本地或伺服器首次執行時，自動下載 NLTK 必要的大腦模型
+# 🎯 核心修復：相容新版 Python 3.14 環境，完整下載所有必備大腦模型
 @st.cache_resource
 def initialize_nltk():
-    try:
-        nltk.data.find('tokenizers/punkt')
-        nltk.data.find('taggers/averaged_perceptron_tagger')
-        nltk.data.find('corpora/wordnet')
-    except LookupError:
-        nltk.download('punkt')
-        nltk.download('averaged_perceptron_tagger')
-        nltk.download('wordnet')
-        nltk.download('omw-1.4')
+    required_packages = [
+        'punkt',
+        'punkt_tab',                    # ✨ 新版 Python 環境必備的分詞表
+        'averaged_perceptron_tagger',
+        'averaged_perceptron_tagger_eng', # ✨ 新版 Python 環境必備的詞性標注包
+        'wordnet',
+        'omw-1.4'
+    ]
+    for package in required_packages:
+        try:
+            nltk.download(package, quiet=True)
+        except Exception:
+            pass
 
+# 執行初始化下載
 initialize_nltk()
 
 # 🎯 Web Configuration
@@ -82,7 +87,6 @@ def advanced_extract_eight_pos(text):
             
         # NLTK Rules Chart Conversion
         if tag.startswith('NN'): # Nouns
-            # Filter out Proper Nouns (Names) if they are capitalized in mid-sentence
             if tag == 'NNP' or tag == 'NNPS':
                 continue
             base_word = lemmatizer.lemmatize(w_lower, pos='n')
@@ -180,7 +184,7 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-st.markdown('<span class="input-disclaimer">Powered by Google Translate. Content is for reference only.</span>', unsafe_allow_html=True)
+st.markdown('<span class="input-disclaimer"> Powered by Google Translate. Content is for reference only.</span>', unsafe_allow_html=True)
 st.markdown('<p class="input-label">✍️ Paste your English textbook text below:</p>', unsafe_allow_html=True)
 
 text_input = st.text_area("", height=180, placeholder="Type or paste paragraphs from your Math, Science, or English textbooks here...")
@@ -231,7 +235,6 @@ if "processed_text" in st.session_state and st.session_state.processed_text.stri
             word_tts = gTTS(text=st.session_state.play_word, lang='en', slow=False)
             word_tts.save("temp_word.mp3")
             st.audio("temp_word.mp3", format="audio/mp3", autoplay=True)
-            # Reset after playing to prevent loop restarts
             st.session_state.play_word = None
         except Exception:
             pass
@@ -255,7 +258,6 @@ if "processed_text" in st.session_state and st.session_state.processed_text.stri
     for title, word_list in all_categories:
         with st.expander(f"{title} ({len(word_list)})", expanded=False):
             if word_list:
-                # Layout tags neatly in a 3-column structural layout
                 cols = st.columns(3)
                 for index, word in enumerate(word_list):
                     trans = translate_text(word)
