@@ -3,15 +3,16 @@ from gtts import gTTS
 import urllib.parse
 import json
 import urllib.request
+import re
 
-# 🎯 核心修改：設定網頁配置，直接隱藏 Streamlit 官方的所有選單與底部標籤
+# 🎯 網頁基本配置
 st.set_page_config(
-    page_title="Smart Reading Buddy",
+    page_title="Smart Reading Buddy - Bridge to Form 1",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# Official lightweight translation function
+# 輕量翻譯函數
 def translate_text(text, target_lang='zh-TW'):
     try:
         url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={target_lang}&dt=t&q={urllib.parse.quote(text)}"
@@ -20,24 +21,30 @@ def translate_text(text, target_lang='zh-TW'):
             data = json.loads(response.read().decode('utf-8'))
             return "".join([sentence[0] for sentence in data[0] if sentence[0]])
     except Exception:
-        return "Translation temporarily unavailable, please try again!"
+        return "Translation temporarily unavailable..."
 
-# --- 🚀 網頁精美視覺設計 (CSS) 🚀 ---
+# 🎯 簡單的高頻/學科核心詞彙庫（幫助小六生快速抓出重要單字）
+def extract_key_vocab(text):
+    # 清理標點符號，轉小寫
+    words = re.findall(r'\b[a-zA-Z]{5,}\b', text.lower()) # 挑出5個字母以上的單字
+    # 排除常見極簡單字
+    stop_words = {'about', 'their', 'there', 'would', 'could', 'should', 'which', 'where', 'these', 'those'}
+    unique_words = list(set(words) - stop_words)[:6] # 每次最多挑6個
+    return unique_words
+
+# --- 🚀 網頁美化視覺設計 (CSS) 🚀 ---
 st.markdown("""
     <style>
-    /* 🎯 終極大法：用 CSS 直接把右下角的卡片和右上角的選單在畫面上徹底抹去 */
+    /* 隱藏官方冗餘元素 */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
     .stAppDeployButton {display: none !important;}
     div[data-testid="stDecoration"] {display: none !important;}
 
-    /* 全局背景與字體優化 */
-    .stApp {
-        background-color: #F8FAFC;
-    }
+    .stApp { background-color: #F8FAFC; }
     
-    /* 專屬商標：固定在左上角 */
+    /* 左上角專屬商標 */
     .author-logo {
         position: absolute;
         top: -15px;             
@@ -50,55 +57,26 @@ st.markdown("""
         border-radius: 8px;        
         border: 2px solid #BFDBFE;  
         font-family: sans-serif;
-        letter-spacing: 0.5px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         z-index: 999;
     }
     
-    /* 大標題設計：漸層色彩、陰影與生動圖示 */
+    /* 大標題 */
     .app-header {
-        background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
+        background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
         padding: 30px;
         border-radius: 20px;
         box-shadow: 0 10px 15px -3px rgba(59, 131, 246, 0.2);
         margin-bottom: 25px;
         text-align: center;
-        position: relative; 
     }
-    .main-title { 
-        font-size: 38px !important; 
-        font-weight: 800 !important; 
-        color: #FFFFFF !important; 
-        margin: 0px !important;
-        letter-spacing: 1px;
-    }
-    .sub-title {
-        font-size: 16px !important;
-        color: #E0F2FE !important;
-        margin-top: 8px !important;
-        opacity: 0.9;
-    }
+    .main-title { font-size: 34px !important; font-weight: 800 !important; color: #FFFFFF !important; margin: 0px !important;}
+    .sub-title { font-size: 15px !important; color: #E0F2FE !important; margin-top: 8px !important; }
     
-    /* 提示文字樣式 */
-    .input-label {
-        font-size: 22px !important;
-        font-weight: 900 !important;
-        color: #000000 !important;
-        margin-bottom: 12px !important;
-        display: block;
-    }
+    /* 標籤與提示 */
+    .input-label { font-size: 22px !important; font-weight: 900 !important; color: #000000 !important; margin-bottom: 12px !important; }
+    .input-disclaimer { font-size: 14px !important; color: #EF4444 !important; font-weight: 700 !important; font-style: italic; display: block; margin-bottom: 15px; }
 
-    /* 置頂紅色聲明的樣式 */
-    .input-disclaimer {
-        font-size: 15px !important;
-        color: #EF4444 !important;    
-        font-weight: 700 !important;   
-        font-style: italic;           
-        margin-bottom: 15px !important;
-        display: block;
-    }
-
-    /* 輸入框：6 像素純黑超粗邊框 */
+    /* 輸入框：6像素純黑超粗邊框 */
     .stTextArea textarea {
         border: 6px solid #000000 !important;  
         border-radius: 14px !important;       
@@ -107,127 +85,96 @@ st.markdown("""
         color: #000000 !important;
         font-weight: 500 !important;
     }
-    .stTextArea textarea:focus {
-        border-color: #1D4ED8 !important;     
-        box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.4) !important;
-    }
     
-    /* START 按鈕的字體和外觀大幅放大加粗 */
+    /* 按鈕樣式 */
     .stButton button {
-        font-size: 24px !important;           
-        font-weight: 800 !important;           
-        padding: 14px 28px !important;         
-        border-radius: 12px !important;        
-        background-color: #FF9800 !important;  
-        color: #FFFFFF !important;             
-        border: none !important;
-        box-shadow: 0 4px 6px rgba(255, 152, 0, 0.3) !important; 
-        transition: all 0.2s ease;
-    }
-    .stButton button:hover {
-        background-color: #F57C00 !important;  
-        transform: translateY(-2px) !important; 
-        box-shadow: 0 6px 12px rgba(255, 152, 0, 0.4) !important;
+        font-size: 22px !important; font-weight: 800 !important; padding: 12px 24px !important;
+        border-radius: 12px !important; background-color: #FF9800 !important; color: #FFFFFF !important; border: none !important;
     }
     
-    /* 每一句英文卡片的精美設計 */
+    /* 句子卡片 */
     .sentence-card {
-        background-color: #FFFFFF;
-        padding: 24px;
-        border-radius: 16px;
-        border-left: 6px solid #3B82F6;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-        margin-top: 20px;
-        margin-bottom: 10px;
-        transition: transform 0.2s;
+        background-color: #FFFFFF; padding: 20px; border-radius: 16px; border-left: 6px solid #3B82F6;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-top: 15px; margin-bottom: 5px;
     }
-    .sentence-card:hover {
-        transform: translateY(-2px);
-    }
+    .english-text { font-size: 24px !important; font-weight: 600 !important; color: #0F172A !important; line-height: 1.5; }
+    .chinese-text { font-size: 19px !important; font-weight: 500 !important; color: #475569 !important; background-color: #F1F5F9; padding: 8px 12px; border-radius: 8px; margin-top: 8px; }
     
-    /* 卡片內文字樣式 */
-    .card-index {
-        font-size: 14px !important;
-        font-weight: bold !important;
-        color: #3B82F6 !important;
-        text-transform: uppercase;
-        margin-bottom: 4px;
+    /* 單字卡特製樣式 */
+    .vocab-box {
+        background-color: #FFFBEB; border: 2px dashed #F59E0B; padding: 15px; border-radius: 12px; margin-top: 20px;
     }
-    .english-text { 
-        font-size: 26px !important; 
-        font-weight: 600 !important; 
-        color: #0F172A !important; 
-        line-height: 1.4 !important;
-        margin-bottom: 12px !important; 
-    }
-    .chinese-text { 
-        font-size: 20px !important; 
-        font-weight: 500 !important;
-        color: #475569 !important; 
-        background-color: #F1F5F9;
-        padding: 10px 14px;
-        border-radius: 8px;
-        margin-bottom: 15px !important; 
-    }
+    .vocab-title { font-size: 18px !important; font-weight: 800 !important; color: #B45309 !important; margin-bottom: 8px; }
+    .vocab-item { font-size: 16px !important; font-weight: 600 !important; color: #1E293B !important; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 🎨 畫面正式渲染 🎨 ---
+# --- 🎨 畫面渲染 🎨 ---
 
-# 在網頁最頂端渲染左上角專屬 Logo 標籤
-st.markdown("""
-    <div class="author-logo">
-        🚀 AI Crafted by MACAOCMM
-    </div>
-""", unsafe_allow_html=True)
+st.markdown('<div class="author-logo">🚀 AI Crafted by MACAOMAMASUE</div>', unsafe_allow_html=True)
 
-# 頂部精美招牌
 st.markdown("""
     <div class="app-header">
-        <p class="main-title">📱Smart Reading</p>
-        <p class="sub-title">Break down text • Listen sentence by sentence</p>
+        <p class="main-title">📱 Smart Reading Buddy</p>
+        <p class="sub-title">✏️ 中小銜接特訓版：聽力、詞彙、句子逐一擊破，輕鬆適應英文中學！</p>
     </div>
 """, unsafe_allow_html=True)
 
-# 置頂紅色免責聲明
-st.markdown('<span class="input-disclaimer">Powered by Google Translate. Content is for reference only and may not be perfect.</span>', unsafe_allow_html=True)
+st.markdown('<span class="input-disclaimer">⚠️ Powered by Google Translate. Content is for reference only.</span>', unsafe_allow_html=True)
 
-# 輸入提示標題
-st.markdown('<p class="input-label">✍️ Paste your English text below:</p>', unsafe_allow_html=True)
+# 🚀 貼心功能一：讓學生自行調配適合英文中學的語速
+st.markdown("##### 🎧 聽力適應特訓 (Audio Speed)")
+speed_option = st.radio(
+    "明天升初一，建議先從「慢速」聽清發音，再挑戰「正常」語速適應全英授課：",
+    ("🐢 慢速特訓 (Slow for practice)", "⚡ 正常語速 (Normal for English School)"),
+    horizontal=True
+)
+is_slow = True if "🐢" in speed_option else False
 
-text_input = st.text_area("", height=180, placeholder="Once upon a time, there was a smart tool that helped students learn...")
+st.write("")
 
-st.write("") # 留白
+st.markdown('<p class="input-label">✍️ Paste your English textbook text below:</p>', unsafe_allow_html=True)
+text_input = st.text_area("", height=180, placeholder="Paste a paragraph from your Mathematics, Science, or English textbook here...")
 
-# 啟動按鈕
-if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
+st.write("")
+
+if st.button("🚀 Start English School Training!", use_container_width=True):
     if text_input.strip():
-        # 按句號、問號、感嘆號拆分句子
+        # 拆分句子
         sentences = [s.strip() for s in text_input.replace('?', '.').replace('!', '.').split('.') if s.strip()]
         
-        st.success(f"🎉 Awesome! We found {len(sentences)} sentences for you. Let's practice:")
+        # 🚀 貼心功能二：自動抓出核心單字卡，幫學生擴充詞彙量
+        key_words = extract_key_vocab(text_input)
+        if key_words:
+            st.markdown('<div class="vocab-box">', unsafe_allow_html=True)
+            st.markdown('<div class="vocab-title">🔑 F.1 Textbook Core Vocabulary (課文核心詞彙解碼)</div>', unsafe_allow_html=True)
+            for word in key_words:
+                meaning = translate_text(word)
+                st.markdown(f'<div class="vocab-item">📌 <b>{word}</b> : {meaning}</div>', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.write("")
+        st.subheader(f"📖 Sentence-by-Sentence Breakdown ({len(sentences)} sentences)")
         
         for i, sentence in enumerate(sentences):
             full_sentence = sentence + "."
-            # 翻譯
             translated = translate_text(full_sentence)
             
-            # 用精美的卡片包裹英文與中文
+            # 渲染精美句子卡
             st.markdown(f"""
                 <div class="sentence-card">
-                    <div class="card-index">Sentence {i+1}</div>
+                    <div style="font-size:12px; color:#3B82F6; font-weight:bold;">第 {i+1} 句</div>
                     <div class="english-text">{full_sentence}</div>
-                    <div class="chinese-text">💡 {translated}</div>
+                    <div class="chinese-text">💡 中文翻譯：{translated}</div>
                 </div>
             """, unsafe_allow_html=True)
             
-            # 語音播放條緊跟在卡片下方
+            # 播放音檔 (套用學生選擇的語速)
             try:
-                tts = gTTS(text=full_sentence, lang='en', slow=False)
-                tts.save(f"sentence_{i}.mp3")
-                st.audio(f"sentence_{i}.mp3", format="audio/mp3")
+                tts = gTTS(text=full_sentence, lang='en', slow=is_slow)
+                tts.save(f"sent_{i}.mp3")
+                st.audio(f"sent_{i}.mp3", format="audio/mp3")
             except Exception:
-                st.warning("Audio generation slightly delayed...")
-            
+                st.text("Audio loading...")
     else:
-        st.warning("Please enter some English sentences first!")
+        st.warning("Please paste some text first!")
