@@ -190,7 +190,7 @@ if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
            
            # 3️⃣ 第三步：最後呈現精確的四大詞性生詞清單
            if sentence_vocabs:
-               vocab_html = '<div class="vocab-box"><div class="vocab-title">🔑 句子核心生字 (Key Vocabulary Focus)：</div>'
+               vocab_html = '<div class="vocab-box"><div class="vocab-title">🔑 Key Vocabulary Focus：</div>'
                for item in sentence_vocabs:
                    vocab_html += f'<span class="vocab-tag">📌 {item["word"]} <span class="vocab-pos">({item["pos"]})</span>：{item["meaning"]}</span>'
                vocab_html += '</div>'
