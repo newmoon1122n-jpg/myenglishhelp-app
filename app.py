@@ -175,12 +175,12 @@ st.markdown('<div class="author-logo">🚀 AI Crafted by MACAOCMM</div>', unsafe
 
 st.markdown("""
     <div class="app-header">
-        <p class="main-title">📱 Smart Reading Buddy</p>
-        <p class="sub-title">Bridge to Form 1 • Master English Textbooks Easily</p>
+        <p class="main-title">📱Smart Reading</p>
+        <p class="sub-title">Break down text • Listen sentence by sentence • Vocabulary</p>
     </div>
 """, unsafe_allow_html=True)
 
-st.markdown('<span class="input-disclaimer">⚠️ Powered by Google Translate. Content is for reference only.</span>', unsafe_allow_html=True)
+st.markdown('<span class="input-disclaimer">Powered by Google Translate. Content is for reference only.</span>', unsafe_allow_html=True)
 st.markdown('<p class="input-label">✍️ Paste your English textbook text below:</p>', unsafe_allow_html=True)
 
 text_input = st.text_area("", height=180, placeholder="Type or paste paragraphs from your Math, Science, or English textbooks here...")
