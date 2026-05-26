@@ -13,7 +13,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 官方輕量翻譯函數（用於句子與單字翻譯）
+# 官方輕量翻譯函數（用於句子與單字/片語翻譯）
 def translate_text(text, target_lang='zh-TW'):
     try:
         url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={target_lang}&dt=t&q={urllib.parse.quote(text)}"
@@ -24,13 +24,18 @@ def translate_text(text, target_lang='zh-TW'):
     except Exception:
         return "無法取得翻譯"
 
-# 🎯 升級版句內生字提取（完美過濾所有縮寫詞）
+# 🎯 智慧型句內生字與片語提取函數（完美支援 set off, put down 等一體化識別）
 def extract_sentence_vocab(sentence_text):
-    # 💡 核心修改：切分單字時，先保留撇號 ' 以便識別縮寫詞，清除其他標點符號
+    # 切分單字時保留撇號，清理其他標點
     clean_text = re.sub(r"[^\w\s']", '', sentence_text)
     words = clean_text.split()
     
-    # 基礎高頻虛詞過濾庫
+    # 常見動詞片語的後半部分（小品詞/介詞庫）
+    phrasal_particles = {
+        'off', 'down', 'up', 'on', 'out', 'in', 'away', 'back', 'over', 'after', 'for', 'into'
+    }
+    
+    # 基礎高頻單字過濾庫
     ignore_words = {
         'the', 'a', 'an', 'to', 'of', 'at', 'in', 'on', 'by', 'for', 'from', 'with', 'and', 'but', 
         'or', 'so', 'because', 'if', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'this', 'that', 
@@ -42,27 +47,47 @@ def extract_sentence_vocab(sentence_text):
     vocab_list = []
     seen_words = set()
     
-    for word in words:
-        w_lower = word.lower()
+    i = 0
+    while i < len(words):
+        w_lower = words[i].lower()
         
-        # 🚫 終極防禦：如果單字包含撇號 `'`（代表它是縮寫詞，如 they'd, don't, i'm），直接略過！
+        # 1. 🚫 跳過縮寫詞
         if "'" in w_lower:
+            i += 1
             continue
             
-        # 排除過短字、高頻字、包含純數字以及重複出現的字
+        # 2. 💡 核心邏輯：動態偵測動詞片語 (例如 set off, put down, look after)
+        if i + 1 < len(words):
+            next_w_lower = words[i+1].lower()
+            # 如果下一個字屬於常見片語介詞（如 off, down），則嘗試將它們打包成片語
+            if next_w_lower in phrasal_particles and w_lower.isalpha() and next_w_lower.isalpha():
+                phrasal_verb = f"{w_lower} {next_w_lower}"
+                
+                if phrasal_verb not in seen_words:
+                    seen_words.add(phrasal_verb)
+                    meaning = translate_text(phrasal_verb)
+                    
+                    # 確保翻譯有效，且不是單純的英文字母重複
+                    if meaning.lower() != phrasal_verb:
+                        vocab_list.append({"word": phrasal_verb, "meaning": meaning})
+                        
+                seen_words.add(w_lower)       # 標記前字已被使用，防止單獨拆出
+                seen_words.add(next_w_lower)  # 標記後字已被使用，防止單獨拆出
+                i += 2  # 成功打包，直接跳過這兩個字
+                continue
+        
+        # 3. 一般單字處理流程
         if len(w_lower) < 3 or w_lower in ignore_words or not w_lower.isalpha() or w_lower in seen_words:
+            i += 1
             continue
             
         seen_words.add(w_lower)
+        meaning = translate_text(w_lower)
         
-        # 翻譯核心生字
-        chinese_meaning = translate_text(w_lower)
-        
-        # 避免無效翻譯干擾
-        if chinese_meaning.lower() == w_lower:
-            continue
+        if meaning.lower() != w_lower:
+            vocab_list.append({"word": w_lower, "meaning": meaning})
             
-        vocab_list.append({"word": w_lower, "meaning": chinese_meaning})
+        i += 1
         
     return vocab_list
 
@@ -133,7 +158,7 @@ st.markdown("""
 st.markdown('<span class="input-disclaimer">Powered by Google Translate. Content is for reference only and may not be perfect.</span>', unsafe_allow_html=True)
 st.markdown('<p class="input-label">✍️ Paste your English text below:</p>', unsafe_allow_html=True)
  
-text_input = st.text_area("", height=180, placeholder="Once upon a time, there was a smart tool that helped students learn...")
+text_input = st.text_area("", height=180, placeholder="Once upon a time, they decided to set off early...")
 st.write("") 
  
 if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
@@ -146,7 +171,7 @@ if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
            full_sentence = sentence + "."
            translated = translate_text(full_sentence)
            
-           # 提取不包含任何縮寫詞的核心生字
+           # 提取核心生字及一體化動詞片語
            sentence_vocabs = extract_sentence_vocab(full_sentence)
            
            # 1️⃣ 第一步：列句子卡片
@@ -168,9 +193,9 @@ if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
            except Exception:
                st.warning("Audio generation slightly delayed...")
            
-           # 3️⃣ 第三步：最後呈現精確無縮寫的生詞清單
+           # 3️⃣ 第三步：最後呈現精確的生詞與片語清單
            if sentence_vocabs:
-               vocab_html = '<div class="vocab-box"><div class="vocab-title">🔑 Vocabulary：</div>'
+               vocab_html = '<div class="vocab-box"><div class="vocab-title">🔑 Vocabulary ：</div>'
                for item in sentence_vocabs:
                    vocab_html += f'<span class="vocab-tag">📌 {item["word"]}：{item["meaning"]}</span>'
                vocab_html += '</div>'
