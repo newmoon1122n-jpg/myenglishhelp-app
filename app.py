@@ -178,7 +178,7 @@ if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
            
            # 3️⃣ 第三步：最後才是生詞清單（完全獨立在發音條下方）
            if sentence_vocabs:
-               vocab_html = '<div class="vocab-box"><div class="vocab-title">🔑 句子生字筆記 (Vocabulary Focus)：</div>'
+               vocab_html = '<div class="vocab-box"><div class="vocab-title">🔑 Vocabulary Focus：</div>'
                for item in sentence_vocabs:
                    vocab_html += f'<span class="vocab-tag">📌 {item["word"]} <span class="vocab-pos">({item["pos"]})</span>：{item["meaning"]}</span>'
                vocab_html += '</div>'
