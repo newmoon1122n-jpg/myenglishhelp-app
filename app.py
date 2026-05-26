@@ -167,7 +167,7 @@ if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
            
            # 3️⃣ 第三步：最後呈現最純淨的生詞清單（去除了詞性干擾）
            if sentence_vocabs:
-               vocab_html = '<div class="vocab-box"><div class="vocab-title">🔑 Key Vocabulary Focus：</div>'
+               vocab_html = '<div class="vocab-box"><div class="vocab-title">🔑 Vocabulary：</div>'
                for item in sentence_vocabs:
                    vocab_html += f'<span class="vocab-tag">📌 {item["word"]}：{item["meaning"]}</span>'
                vocab_html += '</div>'
