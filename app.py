@@ -24,13 +24,13 @@ def translate_text(text, target_lang='zh-TW'):
     except Exception:
         return "無法取得翻譯"
 
-# 🎯 終極語境生字提取函數（同時防禦縮寫、保留連字號、強迫語境翻譯）
+# 🎯 終極語境生字提取函數（完美修復語法 Bug）
 def extract_contextual_vocab(sentence_text):
-    # 💡 關鍵：正則表達式允許字母、撇號'和連字號-，確保 severe-looking 完整
+    # 正則表達式允許字母、撇號'和連字號-，確保 severe-looking 完整
     clean_text = re.sub(r"[^\w\s'\-]", ' ', sentence_text)
     words = clean_text.split()
     
-    # 基礎高頻虛詞、介詞、連詞過濾庫（減少學生負擔）
+    # 基礎高頻虛詞、介詞、連詞過濾庫
     ignore_words = {
         'the', 'a', 'an', 'to', 'of', 'at', 'in', 'on', 'by', 'for', 'from', 'with', 'and', 'but', 
         'or', 'so', 'because', 'if', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'this', 'that', 
@@ -43,10 +43,9 @@ def extract_contextual_vocab(sentence_text):
     seen_words = set()
     
     for word in words:
-        # 清除單字前後可能因為標點切分殘留的連字號
         w_lower = word.lower().strip('-')
         
-        # 1. 🚫 縮寫詞無情鐵壁：只要有撇號（如 they'd, it's）直接扔掉，絕不當生字！
+        # 1. 🚫 縮寫詞無情鐵壁：只要有撇號（如 they'd, it's）直接扔掉
         if "'" in w_lower:
             continue
             
@@ -54,7 +53,7 @@ def extract_contextual_vocab(sentence_text):
         if len(w_lower) < 3 or w_lower in ignore_words or w_lower in seen_words:
             continue
             
-        # 確保單字結構乾淨（只含字母或連字號）
+        # 確保單字結構乾淨
         if not re.match(r'^[a-z\-]+$', w_lower):
             continue
             
@@ -62,7 +61,6 @@ def extract_contextual_vocab(sentence_text):
         
         # 3. 🎯 字不離句：利用特殊打包結構，強迫翻譯引擎根據整句上下文來解釋這個單字
         try:
-            # 建立一個包含上下文的查詢結構，讓翻譯引擎知道這個詞是在哪句話裡出現的
             context_query = f"{w_lower} (in the context of: {sentence_text})"
             url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=zh-TW&dt=t&q={urllib.parse.quote(context_query)}"
             
@@ -71,10 +69,9 @@ def extract_contextual_vocab(sentence_text):
                 data = json.loads(response.read().decode('utf-8'))
                 raw_meaning = "".join([sentence[0] for sentence in data[0] if sentence[0]])
             
-            # 清理翻譯引擎返回的上下文噪意，只留下最核心的中文釋義
-            context_meaning = raw_meaning.split('(')[0].split'（')[0].strip()
+            # 💡 【這裡已完美修正！】修復了剛才漏掉小括號的語法錯誤
+            context_meaning = raw_meaning.split('(')[0].split('（')[0].strip()
             
-            # 如果去噪後不幸為空或失敗，使用標準翻譯兜底
             if not context_meaning or context_meaning.lower() == w_lower:
                 context_meaning = translate_text(w_lower)
                 
@@ -169,7 +166,6 @@ if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
            full_sentence = sentence + "."
            translated = translate_text(full_sentence)
            
-           # 💡 核心：調用全新整理的語境生字提取函數
            sentence_vocabs = extract_contextual_vocab(full_sentence)
            
            # 1️⃣ 第一步：列句子卡片
@@ -193,7 +189,7 @@ if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
            
            # 3️⃣ 第三步：呈現精確符合句意的純淨生詞清單
            if sentence_vocabs:
-               vocab_html = '<div class="vocab-box"><div class="vocab-title">🔑 Vocabulary ：</div>'
+               vocab_html = '<div class="vocab-box"><div class="vocab-title">🔑 Vocabulary Focus ：</div>'
                for item in sentence_vocabs:
                    vocab_html += f'<span class="vocab-tag">📌 {item["word"]}：{item["meaning"]}</span>'
                vocab_html += '</div>'
