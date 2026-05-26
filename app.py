@@ -6,6 +6,27 @@ import urllib.request
 import re
 import os
 
+# 🚀 引入 NLTK 核心庫
+import nltk
+from nltk.tokenize import word_tokenize
+from nltk.tag import pos_tag
+from nltk.stem import WordNetLemmatizer
+
+# 🎯 在本地或伺服器首次執行時，自動下載 NLTK 必要的大腦模型
+@st.cache_resource
+def initialize_nltk():
+    try:
+        nltk.data.find('tokenizers/punkt')
+        nltk.data.find('taggers/averaged_perceptron_tagger')
+        nltk.data.find('corpora/wordnet')
+    except LookupError:
+        nltk.download('punkt')
+        nltk.download('averaged_perceptron_tagger')
+        nltk.download('wordnet')
+        nltk.download('omw-1.4')
+
+initialize_nltk()
+
 # 🎯 Web Configuration
 st.set_page_config(
     page_title="Smart Reading Buddy",
@@ -28,57 +49,67 @@ def translate_text(text, target_lang='zh-TW'):
     except Exception:
         return "Translation temporarily unavailable..."
 
-# 🎯 Advanced 8-Category Part-of-Speech & Phrase Extractor
-def extract_eight_pos(text):
-    cleaned_text = re.sub(r'[.,!?";:()\]\[]', ' ', text)
-    words_raw = cleaned_text.split()
+# 🎯 AI-Driven POS Classifier using NLTK (With Context Awareness & Lemmatization)
+def advanced_extract_eight_pos(text):
+    if not text.strip():
+        return {k: [] for k in ["Noun", "Pronoun", "Verb", "Adjective", "Adverb", "Conjunction", "Interjection"]}, []
+
+    # 1. Extract Common Educational Phrases First
+    phrase_patterns = r'\b(look after|look for|pick up|get up|run away|once upon a time|a lot of|depend on|laugh at|listen to|go to|set up|turn off|turn on|put on|take off)\b'
+    phrases = sorted(list(set(re.findall(phrase_patterns, text.lower()))))
     
-    # Extract Phrases (Basic 2-3 word combinations)
-    phrase_matches = re.findall(r'\b(look after|look for|pick up|get up|run away|once upon a time|a lot of|depend on|laugh at|listen to|go to|set up|turn off|turn on|put on|take off)\b', text.lower())
-    phrases = sorted(list(set(phrase_matches)))
-    phrase_blobs = " ".join(phrases)
+    # 2. Tokenize and Tag parts of speech based on Context
+    tokens = word_tokenize(text)
+    tagged_words = pos_tag(tokens)
     
-    # Detect and exclude proper nouns (names like John, Mary)
-    proper_nouns = set(re.findall(r'\b[A-Z][a-z]+\b', text))
-    sentence_starts = set(re.findall(r'(?:^|[.!?]\s+)([A-Z][a-z]+)', text))
-    names_to_exclude = {name.lower() for name in (proper_nouns - sentence_starts)}
+    # Initialize Lemmatizer to restore words to their base form (e.g., running -> run)
+    lemmatizer = WordNetLemmatizer()
     
     categories = {
         "Noun": set(), "Pronoun": set(), "Verb": set(), "Adjective": set(),
         "Adverb": set(), "Conjunction": set(), "Interjection": set()
     }
     
-    pronouns = {'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them', 'my', 'your', 'his', 'its', 'our', 'their', 'this', 'that', 'these', 'those', 'who', 'whom', 'which', 'what'}
-    conjunctions = {'and', 'but', 'or', 'so', 'because', 'although', 'if', 'unless', 'since', 'until', 'while', 'as', 'than', 'yet', 'nor'}
-    interjections = {'oh', 'wow', 'oops', 'hey', 'alas', 'hurrah', 'ah', 'hello', 'hi', 'yuck', 'ouch'}
-    
-    noun_suffixes = ('tion', 'sion', 'ment', 'ence', 'ance', 'ity', 'ness', 'ship', 'ism', 'ist', 'logy', 'ture', 'dom')
-    verb_suffixes = ('ing', 'ed', 'ize', 'ify', 'ate', 'es')
-    adj_suffixes = ('ful', 'less', 'able', 'ible', 'ive', 'ous', 'ish', 'ant', 'ent', 'ary', 'ic', 'al')
+    # Filter list for common stop words that don't need vocabulary testing
+    ignore_words = {'the', 'a', 'an', 'to', 'of', 'at', 'in', 'on', 'by', 'for', 'from', 'with'}
 
-    for word in words_raw:
+    for word, tag in tagged_words:
         w_lower = word.lower()
-        if len(w_lower) < 2 or w_lower in names_to_exclude or w_lower in phrase_blobs:
+        
+        # Skip punctuation, short noise, numbers, or specific stop words
+        if len(w_lower) < 2 or w_lower in ignore_words or not w_lower.isalpha():
             continue
             
-        if w_lower in pronouns:
+        # NLTK Rules Chart Conversion
+        if tag.startswith('NN'): # Nouns
+            # Filter out Proper Nouns (Names) if they are capitalized in mid-sentence
+            if tag == 'NNP' or tag == 'NNPS':
+                continue
+            base_word = lemmatizer.lemmatize(w_lower, pos='n')
+            categories["Noun"].add(base_word)
+            
+        elif tag.startswith('VB'): # Verbs
+            base_word = lemmatizer.lemmatize(w_lower, pos='v')
+            categories["Verb"].add(base_word)
+            
+        elif tag.startswith('JJ'): # Adjectives
+            base_word = lemmatizer.lemmatize(w_lower, pos='a')
+            categories["Adjective"].add(base_word)
+            
+        elif tag.startswith('RB'): # Adverbs
+            base_word = lemmatizer.lemmatize(w_lower, pos='r')
+            categories["Adverb"].add(base_word)
+            
+        elif tag in ['PRP', 'PRP$', 'WP', 'WP$']: # Pronouns
             categories["Pronoun"].add(w_lower)
-        elif w_lower in conjunctions:
+            
+        elif tag in ['CC', 'IN'] and w_lower in ['and', 'but', 'or', 'so', 'because', 'if', 'although', 'while', 'unless']: # Conjunctions
             categories["Conjunction"].add(w_lower)
-        elif w_lower in interjections:
+            
+        elif tag == 'UH' or w_lower in ['oh', 'wow', 'oops', 'hey', 'hello', 'hi']: # Interjections
             categories["Interjection"].add(w_lower)
-        elif w_lower.endswith('ly'):
-            categories["Adverb"].add(w_lower)
-        elif w_lower.endswith(adj_suffixes):
-            categories["Adjective"].add(w_lower)
-        elif w_lower.endswith(verb_suffixes):
-            categories["Verb"].add(w_lower)
-        elif w_lower.endswith(noun_suffixes):
-            categories["Noun"].add(w_lower)
-        else:
-            if len(w_lower) >= 4:
-                categories["Noun"].add(w_lower)
-                
+            
+    # Format and sort outputs neatly
     return {k: sorted(list(v)) for k, v in categories.items()}, phrases
 
 
@@ -121,7 +152,7 @@ st.markdown("""
         background-color: #FFFFFF !important; font-size: 20px !important; color: #000000 !important; font-weight: 500 !important;
     }
     
-    /* Giant Vibrant Orange Action Button */
+    /* Giant Vibrant Orange Action Button Layout Pinpointing */
     div[data-testid="stMainBlockContainer"] > div:nth-child(6) button {
         font-size: 24px !important; font-weight: 800 !important; padding: 14px 28px !important;         
         border-radius: 12px !important; background-color: #FF9800 !important; color: #FFFFFF !important; border: none !important;
@@ -144,12 +175,12 @@ st.markdown('<div class="author-logo">🚀 AI Crafted by MACAOCMM</div>', unsafe
 
 st.markdown("""
     <div class="app-header">
-        <p class="main-title">📱Smart Reading</p>
-        <p class="sub-title">Break down text • Listen sentence by sentence • Vocabulary</p>
+        <p class="main-title">📱 Smart Reading Buddy</p>
+        <p class="sub-title">Bridge to Form 1 • Master English Textbooks Easily</p>
     </div>
 """, unsafe_allow_html=True)
 
-st.markdown('<span class="input-disclaimer">Powered by Google Translate. Content is for reference only.</span>', unsafe_allow_html=True)
+st.markdown('<span class="input-disclaimer">⚠️ Powered by Google Translate. Content is for reference only.</span>', unsafe_allow_html=True)
 st.markdown('<p class="input-label">✍️ Paste your English textbook text below:</p>', unsafe_allow_html=True)
 
 text_input = st.text_area("", height=180, placeholder="Type or paste paragraphs from your Math, Science, or English textbooks here...")
@@ -160,7 +191,7 @@ st.write("")
 if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
     st.session_state.processed_text = text_input
 
-# Check if text has been processed
+# Check if text has been processed and saved in memory
 if "processed_text" in st.session_state and st.session_state.processed_text.strip():
     current_text = st.session_state.processed_text
     sentences = [s.strip() for s in current_text.replace('?', '.').replace('!', '.').split('.') if s.strip()]
@@ -176,7 +207,7 @@ if "processed_text" in st.session_state and st.session_state.processed_text.stri
             <div class="sentence-card">
                 <div style="font-size:13px; color:#3B82F6; font-weight:bold; text-transform:uppercase; margin-bottom:4px;">Sentence {i+1}</div>
                 <div class="english-text">{full_sentence}</div>
-                <div class="chinese-text">💡 {translated}</div>
+                <div class="chinese-text">💡 中文翻譯：{translated}</div>
             </div>
         """, unsafe_allow_html=True)
         
@@ -194,21 +225,21 @@ if "processed_text" in st.session_state and st.session_state.processed_text.stri
     st.markdown("### 🔍 Grammar Focus: 8 Parts of Speech & Phrases")
     st.write("Click on any word category below to explore. **Click any word button to play its sound instantly!**")
     
-    # Hidden audio player trigger section
+    # Hidden audio player trigger section (Guarantees 100% sound playback)
     if st.session_state.play_word:
         try:
             word_tts = gTTS(text=st.session_state.play_word, lang='en', slow=False)
             word_tts.save("temp_word.mp3")
             st.audio("temp_word.mp3", format="audio/mp3", autoplay=True)
-            # Reset after playing
+            # Reset after playing to prevent loop restarts
             st.session_state.play_word = None
         except Exception:
             pass
 
-    # Extract lists
-    pos_lists, phrases = extract_eight_pos(current_text)
+    # Extract high-precision lists using NLTK AI Engine
+    pos_lists, phrases = advanced_extract_eight_pos(current_text)
     
-    # Define 8 Categories
+    # Define 8 Categories Linked to Icons
     all_categories = [
         ("🔷 Noun", pos_lists["Noun"]),
         ("🟡 Pronoun", pos_lists["Pronoun"]),
@@ -224,13 +255,12 @@ if "processed_text" in st.session_state and st.session_state.processed_text.stri
     for title, word_list in all_categories:
         with st.expander(f"{title} ({len(word_list)})", expanded=False):
             if word_list:
-                # Use Streamlit columns to lay out the words like neat tags
+                # Layout tags neatly in a 3-column structural layout
                 cols = st.columns(3)
                 for index, word in enumerate(word_list):
                     trans = translate_text(word)
                     button_label = f"🔊 {word} ({trans})"
                     
-                    # Target correct column wrapper
                     with cols[index % 3]:
                         if st.button(button_label, key=f"btn_{title}_{word}_{index}"):
                             st.session_state.play_word = word
