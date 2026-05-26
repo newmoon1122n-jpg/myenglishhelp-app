@@ -6,27 +6,6 @@ import urllib.request
 import re
 import io
 
-# 🚀 引入 NLTK 核心庫
-import nltk
-from nltk.tokenize import word_tokenize
-from nltk.tag import pos_tag
-from nltk.stem import WordNetLemmatizer
-
-# 🎯 自動下載必備的語法大腦模型（加入快取，避免重複下載變慢）
-@st.cache_resource
-def initialize_nltk():
-    required_packages = [
-        'punkt', 'punkt_tab', 'averaged_perceptron_tagger', 
-        'averaged_perceptron_tagger_eng', 'wordnet', 'omw-1.4'
-    ]
-    for package in required_packages:
-        try:
-            nltk.download(package, quiet=True)
-        except Exception:
-            pass
-
-initialize_nltk()
-
 # 🎯 Web Configuration
 st.set_page_config(
     page_title="Smart Reading Buddy",
@@ -34,7 +13,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 官方輕量翻譯函數
+# 官方輕量翻譯函數（用於句子與單字翻譯）
 def translate_text(text, target_lang='zh-TW'):
     try:
         url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={target_lang}&dt=t&q={urllib.parse.quote(text)}"
@@ -45,63 +24,41 @@ def translate_text(text, target_lang='zh-TW'):
     except Exception:
         return "無法取得翻譯"
 
-# 🎯 專業級 NLTK 句內詞性精確過濾
+# 🎯 純淨版句內生字提取（不帶詞性分析，穩定度 100%）
 def extract_sentence_vocab(sentence_text):
-    if not sentence_text.strip():
-        return []
-        
-    # 1. 使用 NLTK 進行標準分詞與上下文詞性標註
-    tokens = word_tokenize(sentence_text)
-    tagged_words = pos_tag(tokens)
-    lemmatizer = WordNetLemmatizer()
+    # 清理標點符號並拆分單字
+    clean_text = re.sub(r'[^\w\s]', '', sentence_text)
+    words = clean_text.split()
     
-    # 排除基礎高頻虛詞
+    # 排除常見基礎高頻字（代名詞、冠詞、介係詞等）
     ignore_words = {
         'the', 'a', 'an', 'to', 'of', 'at', 'in', 'on', 'by', 'for', 'from', 'with', 'and', 'but', 
         'or', 'so', 'because', 'if', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'this', 'that', 
-        'these', 'those', 'is', 'am', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had', 'do', 'does', 'did'
+        'these', 'those', 'is', 'am', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had', 
+        'do', 'does', 'did', 'can', 'will', 'should', 'would', 'could', 'may', 'might', 'must',
+        'my', 'your', 'his', 'her', 'its', 'our', 'their', 'me', 'him', 'them', 'us'
     }
     
     vocab_list = []
     seen_words = set()
     
-    for word, tag in tagged_words:
+    for word in words:
         w_lower = word.lower()
         
-        # 基本過濾
-        if len(w_lower) < 2 or w_lower in ignore_words or not w_lower.isalpha() or w_lower in seen_words:
+        # 排除長度過短、基礎字、數字以及重複字
+        if len(w_lower) < 3 or w_lower in ignore_words or not w_lower.isalpha() or w_lower in seen_words:
             continue
             
-        # 💡 NLTK 精確標籤對應與原型還原 (Lemmatization)
-        pos = None
-        if tag.startswith('NN'):        # 名詞 Noun (NN, NNS, NNP, NNPS)
-            pos = "n."
-            base_word = lemmatizer.lemmatize(w_lower, pos='n')
-        elif tag.startswith('VB'):      # 動詞 Verb (VB, VBD, VBG, VBN, VBP, VBZ)
-            pos = "v."
-            base_word = lemmatizer.lemmatize(w_lower, pos='v')
-        elif tag.startswith('JJ'):      # 形容詞 Adjective (JJ, JJR, JJS)
-            pos = "adj."
-            base_word = lemmatizer.lemmatize(w_lower, pos='a')
-        elif tag.startswith('RB'):      # 副詞 Adverb (RB, RBR, RBS)
-            pos = "adv."
-            base_word = lemmatizer.lemmatize(w_lower, pos='r')
-            
-        # 🚫 如果不是四大實詞，直接無情排除
-        if not pos:
-            continue
-            
-        # 避免原型還原後重複
-        if base_word in seen_words:
-            continue
-        seen_words.add(base_word)
+        seen_words.add(w_lower)
         
-        # 翻譯核心生字（使用還原後的主幹單字，查字典更精準）
-        chinese_meaning = translate_text(base_word)
-        if chinese_meaning.lower() == base_word:
+        # 直接翻譯該單字
+        chinese_meaning = translate_text(w_lower)
+        
+        # 如果翻譯結果跟原單字一樣，代表可能無法正常翻譯（如人名），則跳過
+        if chinese_meaning.lower() == w_lower:
             continue
             
-        vocab_list.append({"word": base_word, "pos": pos, "meaning": chinese_meaning})
+        vocab_list.append({"word": w_lower, "meaning": chinese_meaning})
         
     return vocab_list
 
@@ -150,13 +107,13 @@ st.markdown("""
    .english-text { font-size: 26px !important; font-weight: 600 !important; color: #0F172A !important; line-height: 1.4 !important; margin-bottom: 12px !important; }
    .chinese-text { font-size: 20px !important; font-weight: 500 !important; color: #475569 !important; background-color: #F1F5F9; padding: 10px 14px; border-radius: 8px; margin-bottom: 5px !important; }
 
+   /* 生字庫小字條樣式 */
    .vocab-box { background-color: #FFFDF5; border: 1px dashed #FFD54F; border-radius: 10px; padding: 12px 16px; margin-top: 5px; margin-bottom: 25px; }
    .vocab-title { font-size: 15px; font-weight: bold; color: #D84315; margin-bottom: 6px; }
    .vocab-tag {
        display: inline-block; background-color: #FFF3E0; color: #E65100; padding: 4px 10px; border-radius: 6px;
        font-size: 15px; font-weight: bold; margin-right: 8px; margin-bottom: 8px; border: 1px solid #FFE0B2;
    }
-   .vocab-pos { color: #78909C; font-size: 13px; font-style: italic; }
    </style>
 """, unsafe_allow_html=True)
  
@@ -186,10 +143,10 @@ if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
            full_sentence = sentence + "."
            translated = translate_text(full_sentence)
            
-           # 💡 呼叫全新的 NLTK 專業級詞性提取函數
+           # 提取本句的關鍵生字（不帶詞性）
            sentence_vocabs = extract_sentence_vocab(full_sentence)
            
-           # 1️⃣ 第一步：列句子
+           # 1️⃣ 第一步：列句子卡片
            st.markdown(f"""
                 <div class="sentence-card">
                     <div class="card-index">Sentence {i+1}</div>
@@ -208,11 +165,11 @@ if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
            except Exception:
                st.warning("Audio generation slightly delayed...")
            
-           # 3️⃣ 第三步：最後呈現精確的四大詞性生詞清單
+           # 3️⃣ 第三步：最後呈現最純淨的生詞清單（去除了詞性干擾）
            if sentence_vocabs:
-               vocab_html = '<div class="vocab-box"><div class="vocab-title">🔑 句子核心生字 (Key Vocabulary Focus)：</div>'
+               vocab_html = '<div class="vocab-box"><div class="vocab-title">🔑 Key Vocabulary Focus：</div>'
                for item in sentence_vocabs:
-                   vocab_html += f'<span class="vocab-tag">📌 {item["word"]} <span class="vocab-pos">({item["pos"]})</span>：{item["meaning"]}</span>'
+                   vocab_html += f'<span class="vocab-tag">📌 {item["word"]}：{item["meaning"]}</span>'
                vocab_html += '</div>'
                st.markdown(vocab_html, unsafe_allow_html=True)
            else:
