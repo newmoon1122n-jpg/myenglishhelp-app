@@ -46,7 +46,7 @@ def extract_sentence_vocab(sentence_text):
             
         seen_words.add(w_lower)
         
-        # 詞性智能判斷
+        # 詞性智能判斷 (字尾法則)
         if w_lower.endswith('ly'):
             pos = "adv."
         elif w_lower.endswith(('tion', 'ness', 'ment', 'ity', 'ship', 'er', 'or', 'ist')):
@@ -113,14 +113,14 @@ st.markdown("""
     
    .sentence-card {
        background-color: #FFFFFF; padding: 24px; border-radius: 16px; border-left: 6px solid #3B82F6;
-       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-top: 20px; margin-bottom: 10px;
+       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-top: 20px; margin-bottom: 5px;
    }
    .card-index { font-size: 14px !important; font-weight: bold !important; color: #3B82F6 !important; text-transform: uppercase; margin-bottom: 4px; }
    .english-text { font-size: 26px !important; font-weight: 600 !important; color: #0F172A !important; line-height: 1.4 !important; margin-bottom: 12px !important; }
-   .chinese-text { font-size: 20px !important; font-weight: 500 !important; color: #475569 !important; background-color: #F1F5F9; padding: 10px 14px; border-radius: 8px; margin-bottom: 15px !important; }
+   .chinese-text { font-size: 20px !important; font-weight: 500 !important; color: #475569 !important; background-color: #F1F5F9; padding: 10px 14px; border-radius: 8px; margin-bottom: 5px !important; }
 
-   /* 生字庫小字條樣式 */
-   .vocab-box { background-color: #FFFDF5; border: 1px dashed #FFD54F; border-radius: 10px; padding: 12px 16px; margin-top: 15px; margin-bottom: 10px; }
+   /* 生字庫專屬新樣式：獨立於卡片之外，間距更清晰 */
+   .vocab-box { background-color: #FFFDF5; border: 1px dashed #FFD54F; border-radius: 10px; padding: 12px 16px; margin-top: 5px; margin-bottom: 25px; }
    .vocab-title { font-size: 15px; font-weight: bold; color: #D84315; margin-bottom: 6px; }
    .vocab-tag {
        display: inline-block; background-color: #FFF3E0; color: #E65100; padding: 4px 10px; border-radius: 6px;
@@ -136,7 +136,7 @@ st.markdown('<div class="author-logo">🚀 AI Crafted by MACAOCMM</div>', unsafe
 st.markdown("""
    <div class="app-header">
        <p class="main-title">📱 Smart Reading</p>
-       <p class="sub-title">Break down text • Listen sentence by sentence</p>
+       <p class="sub-title">Break down text • Learn step by step</p>
    </div>
 """, unsafe_allow_html=True)
  
@@ -157,25 +157,16 @@ if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
            translated = translate_text(full_sentence)
            sentence_vocabs = extract_sentence_vocab(full_sentence)
            
-           # 拼接生字筆記 HTML
-           vocab_html = ""
-           if sentence_vocabs:
-               vocab_html += '<div class="vocab-box"><div class="vocab-title">🔑 Vocabulary Focus：</div>'
-               for item in sentence_vocabs:
-                   vocab_html += f'<span class="vocab-tag">📌 {item["word"]} <span class="vocab-pos">({item["pos"]})</span>：{item["meaning"]}</span>'
-               vocab_html += '</div>'
-           
-           # 1. 先渲染精美卡片（包含英、中、生字筆記）
+           # 1️⃣ 第一步：列句子（英文與中文翻譯卡片）
            st.markdown(f"""
                 <div class="sentence-card">
                     <div class="card-index">Sentence {i+1}</div>
                     <div class="english-text">{full_sentence}</div>
                     <div class="chinese-text">💡 {translated}</div>
-                    {vocab_html}
                 </div>
            """, unsafe_allow_html=True)
            
-           # 2. ✨ 核心修復：語音播放條緊跟在卡片下方（直接使用內存處理，速度最快）
+           # 2️⃣ 第二步：句子的發音條（緊跟在卡片下方）
            try:
                tts = gTTS(text=full_sentence, lang='en', slow=False)
                fp = io.BytesIO()
@@ -184,6 +175,17 @@ if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
                st.audio(fp, format="audio/mp3")
            except Exception:
                st.warning("Audio generation slightly delayed...")
+           
+           # 3️⃣ 第三步：最後才是生詞清單（完全獨立在發音條下方）
+           if sentence_vocabs:
+               vocab_html = '<div class="vocab-box"><div class="vocab-title">🔑 句子生字筆記 (Vocabulary Focus)：</div>'
+               for item in sentence_vocabs:
+                   vocab_html += f'<span class="vocab-tag">📌 {item["word"]} <span class="vocab-pos">({item["pos"]})</span>：{item["meaning"]}</span>'
+               vocab_html += '</div>'
+               st.markdown(vocab_html, unsafe_allow_html=True)
+           else:
+               # 留下一點精美間距
+               st.write("")
            
    else:
        st.warning("Please enter some English sentences first!")
