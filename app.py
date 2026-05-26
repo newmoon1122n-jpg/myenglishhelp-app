@@ -157,7 +157,7 @@ if "processed_text" in st.session_state and st.session_state.processed_text.stri
             <div class="sentence-card">
                 <div style="font-size:13px; color:#3B82F6; font-weight:bold; text-transform:uppercase; margin-bottom:4px;">Sentence {i+1}</div>
                 <div class="english-text">{full_sentence}</div>
-                <div class="chinese-text">💡 中文翻譯：{translated}</div>
+                <div class="chinese-text">💡 {translated}</div>
             </div>
         """, unsafe_allow_html=True)
         
