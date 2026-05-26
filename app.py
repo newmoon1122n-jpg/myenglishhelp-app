@@ -146,7 +146,7 @@ st.markdown('<div class="author-logo">🚀 AI Crafted by MACAOCMM</div>', unsafe
 st.markdown("""
    <div class="app-header">
        <p class="main-title">📱Smart Reading</p>
-       <p class="sub-title">Break down text • Learn step by step</p>
+       <p class="sub-title">Break down text • Learn sentence by sentence</p>
    </div>
 """, unsafe_allow_html=True)
  
