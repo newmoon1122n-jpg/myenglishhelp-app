@@ -117,12 +117,12 @@ st.markdown("""
 st.markdown('<div class="author-logo">🚀 AI Crafted by MACAOCMM</div>', unsafe_allow_html=True)
 st.markdown("""
     <div class="app-header">
-        <p class="main-title">📱 Smart Reading Buddy</p>
-        <p class="sub-title">Bridge to Form 1 • Master English Textbooks Easily</p>
+        <p class="main-title">📱Smart Reading Buddy</p>
+        <p class="sub-title">Break down text • Listen sentence by sentence</p>
     </div>
 """, unsafe_allow_html=True)
 
-st.markdown('<span class="input-disclaimer">⚠️ Powered by Google Translate. Content is for reference only.</span>', unsafe_allow_html=True)
+st.markdown('<span class="input-disclaimer">Powered by Google Translate. Content is for reference only.</span>', unsafe_allow_html=True)
 st.markdown('<p class="input-label">✍️ Paste your English textbook text below:</p>', unsafe_allow_html=True)
 
 text_input = st.text_area("", height=180, placeholder="Type or paste paragraphs from your textbooks here...")
@@ -146,7 +146,7 @@ if "processed_text" in st.session_state and st.session_state.processed_text.stri
             <div class="sentence-card">
                 <div style="font-size:13px; color:#3B82F6; font-weight:bold; text-transform:uppercase; margin-bottom:4px;">Sentence {i+1}</div>
                 <div class="english-text">{full_sentence}</div>
-                <div class="chinese-text">💡 中文翻譯：{translated}</div>
+                <div class="chinese-text">💡 {translated}</div>
             </div>
         """, unsafe_allow_html=True)
     
@@ -177,6 +177,6 @@ if "processed_text" in st.session_state and st.session_state.processed_text.stri
                         if st.button(button_label, key=f"btn_{title}_{word}_{index}"):
                             # ✨ 核心改動：點擊後即時查詢並彈窗提示中文解釋
                             trans = translate_text(word)
-                            st.toast(f"💡 **{word}** ({title.split()[1]}) 的中文意思是：\n### ➡️ {trans}", icon="📝")
+                            st.toast(f"💡 **{word}** ({title.split()[1]}) \n### ➡️ {trans}", icon="📝")
             else:
                 st.write("No vocabulary detected in this category.")
