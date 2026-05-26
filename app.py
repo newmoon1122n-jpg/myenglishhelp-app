@@ -4,6 +4,7 @@ import urllib.parse
 import json
 import urllib.request
 import re
+import os
 
 # 🎯 Web Configuration
 st.set_page_config(
@@ -12,7 +13,11 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Lightweight Translation Function (For text and vocabulary translation only)
+# Initialize Session State for word audio triggering
+if "play_word" not in st.session_state:
+    st.session_state.play_word = None
+
+# Official lightweight translation function (Only for text and vocabulary)
 def translate_text(text, target_lang='zh-TW'):
     try:
         url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={target_lang}&dt=t&q={urllib.parse.quote(text)}"
@@ -25,16 +30,12 @@ def translate_text(text, target_lang='zh-TW'):
 
 # 🎯 Advanced 8-Category Part-of-Speech & Phrase Extractor
 def extract_eight_pos(text):
-    # Prepare text cleaning
     cleaned_text = re.sub(r'[.,!?";:()\]\[]', ' ', text)
     words_raw = cleaned_text.split()
     
-    # 1. Extract Phrases (Basic 2-3 word combinations)
-    # Looking for common patterns like: verb+prep, adj+noun, prep+noun
-    phrase_matches = re.findall(r'\b(?:look after|look for|pick up|get up|run away|once upon a time|a lot of|depend on|laugh at|listen to|go to|set up|turn off|turn on|put on|take off)\b', text.lower())
+    # Extract Phrases (Basic 2-3 word combinations)
+    phrase_matches = re.findall(r'\b(look after|look for|pick up|get up|run away|once upon a time|a lot of|depend on|laugh at|listen to|go to|set up|turn off|turn on|put on|take off)\b', text.lower())
     phrases = sorted(list(set(phrase_matches)))
-    
-    # Remove phrase words from regular word list to avoid duplicate marking
     phrase_blobs = " ".join(phrases)
     
     # Detect and exclude proper nouns (names like John, Mary)
@@ -42,13 +43,11 @@ def extract_eight_pos(text):
     sentence_starts = set(re.findall(r'(?:^|[.!?]\s+)([A-Z][a-z]+)', text))
     names_to_exclude = {name.lower() for name in (proper_nouns - sentence_starts)}
     
-    # Distinct categorization sets
     categories = {
         "Noun": set(), "Pronoun": set(), "Verb": set(), "Adjective": set(),
         "Adverb": set(), "Conjunction": set(), "Interjection": set()
     }
     
-    # Grammar Rules Database
     pronouns = {'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them', 'my', 'your', 'his', 'its', 'our', 'their', 'this', 'that', 'these', 'those', 'who', 'whom', 'which', 'what'}
     conjunctions = {'and', 'but', 'or', 'so', 'because', 'although', 'if', 'unless', 'since', 'until', 'while', 'as', 'than', 'yet', 'nor'}
     interjections = {'oh', 'wow', 'oops', 'hey', 'alas', 'hurrah', 'ah', 'hello', 'hi', 'yuck', 'ouch'}
@@ -77,29 +76,11 @@ def extract_eight_pos(text):
         elif w_lower.endswith(noun_suffixes):
             categories["Noun"].add(w_lower)
         else:
-            # Fallback optimization for remaining general words
             if len(w_lower) >= 4:
                 categories["Noun"].add(w_lower)
                 
     return {k: sorted(list(v)) for k, v in categories.items()}, phrases
 
-# 🎯 JavaScript Click-to-Speech Engine
-def inject_speech_script():
-    st.markdown("""
-        <script>
-        function speakWord(word) {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel(); // Stop ongoing speech
-                var utterance = new SpeechSynthesisUtterance(word);
-                utterance.lang = 'en-US';
-                utterance.rate = 0.9; // Slightly slower for better learning clarity
-                window.speechSynthesis.speak(utterance);
-            } else {
-                alert('Audio playback not supported on this browser.');
-            }
-        }
-        </script>
-    """, unsafe_allow_html=True)
 
 # --- 🚀 UI/UX Precision CSS Design 🚀 ---
 st.markdown("""
@@ -141,7 +122,7 @@ st.markdown("""
     }
     
     /* Giant Vibrant Orange Action Button */
-    .stButton button {
+    div[data-testid="stMainBlockContainer"] > div:nth-child(6) button {
         font-size: 24px !important; font-weight: 800 !important; padding: 14px 28px !important;         
         border-radius: 12px !important; background-color: #FF9800 !important; color: #FFFFFF !important; border: none !important;
         box-shadow: 0 4px 6px rgba(255, 152, 0, 0.3) !important;
@@ -154,45 +135,17 @@ st.markdown("""
     }
     .english-text { font-size: 26px !important; font-weight: 600 !important; color: #0F172A !important; line-height: 1.4 !important; }
     .chinese-text { font-size: 20px !important; font-weight: 500 !important; color: #475569 !important; background-color: #F1F5F9; padding: 10px 14px; border-radius: 8px; margin-top: 8px; }
-    
-    /* Styled HTML Clickable Vocabulary Audio Cards */
-    .audio-word-btn {
-        display: inline-block;
-        background-color: #FFFFFF;
-        color: #1E293B;
-        border: 2px solid #E2E8F0;
-        padding: 8px 16px;
-        margin: 5px;
-        border-radius: 10px;
-        font-size: 16px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-    }
-    .audio-word-btn:hover {
-        background-color: #EFF6FF;
-        border-color: #3B82F6;
-        color: #2563EB;
-        transform: scale(1.05);
-    }
-    .audio-word-btn:active {
-        transform: scale(0.95);
-    }
     </style>
 """, unsafe_allow_html=True)
 
 # --- 🎨 UI Layout Rendering 🎨 ---
-
-# Inject Javascript Speak System
-inject_speech_script()
 
 st.markdown('<div class="author-logo">🚀 AI Crafted by MACAOCMM</div>', unsafe_allow_html=True)
 
 st.markdown("""
     <div class="app-header">
         <p class="main-title">📱Smart Reading</p>
-        <p class="sub-title">Break down text • Listen sentence by sentence</p>
+        <p class="sub-title">Break down text • Listen sentence by sentence • Vocabulary</p>
     </div>
 """, unsafe_allow_html=True)
 
@@ -205,65 +158,82 @@ st.write("")
 
 # Main Process Button
 if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
-    if text_input.strip():
-        sentences = [s.strip() for s in text_input.replace('?', '.').replace('!', '.').split('.') if s.strip()]
-        st.success(f"🎉 Analysis Complete! We prepared {len(sentences)} sentences for your training:")
+    st.session_state.processed_text = text_input
+
+# Check if text has been processed
+if "processed_text" in st.session_state and st.session_state.processed_text.strip():
+    current_text = st.session_state.processed_text
+    sentences = [s.strip() for s in current_text.replace('?', '.').replace('!', '.').split('.') if s.strip()]
+    
+    st.success(f"🎉 Analysis Complete! We prepared {len(sentences)} sentences for your training:")
+    
+    # 1. Display Sentences, Translations, and Audio Player
+    for i, sentence in enumerate(sentences):
+        full_sentence = sentence + "."
+        translated = translate_text(full_sentence)
         
-        # 1. Display Sentences, Translations, and Audio Player
-        for i, sentence in enumerate(sentences):
-            full_sentence = sentence + "."
-            translated = translate_text(full_sentence)
-            
-            st.markdown(f"""
-                <div class="sentence-card">
-                    <div style="font-size:13px; color:#3B82F6; font-weight:bold; text-transform:uppercase; margin-bottom:4px;">Sentence {i+1}</div>
-                    <div class="english-text">{full_sentence}</div>
-                    <div class="chinese-text">💡{translated}</div>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            try:
-                tts = gTTS(text=full_sentence, lang='en', slow=False)
-                tts.save(f"sentence_{i}.mp3")
-                st.audio(f"sentence_{i}.mp3", format="audio/mp3")
-            except Exception:
-                st.text("Loading audio tool...")
+        st.markdown(f"""
+            <div class="sentence-card">
+                <div style="font-size:13px; color:#3B82F6; font-weight:bold; text-transform:uppercase; margin-bottom:4px;">Sentence {i+1}</div>
+                <div class="english-text">{full_sentence}</div>
+                <div class="chinese-text">💡 {translated}</div>
+            </div>
+        """, unsafe_allow_html=True)
         
-        st.write("---")
-        
-        # 2. 🎯 Bottom Feature: Advanced 8-POS Grammar Explorer
-        st.markdown("### 🔍 Grammar Focus: 8 Parts of Speech & Phrases")
-        st.write("Click on any word category below to explore the words, then **click the word button to listen to its pronunciation!**")
-        
-        # Extract lists
-        pos_lists, phrases = extract_eight_pos(text_input)
-        
-        # Define 8 Expanders (Buttons)
-        all_categories = [
-            ("🔷 Noun", pos_lists["Noun"]),
-            ("🟡 Pronoun", pos_lists["Pronoun"]),
-            ("🟢 Verb", pos_lists["Verb"]),
-            ("🔮 Adjective", pos_lists["Adjective"]),
-            ("🔶 Adverb", pos_lists["Adverb"]),
-            ("🚀 Phrase", phrases),
-            ("🔗 Conjunction", pos_lists["Conjunction"]),
-            ("📢 Interjection", pos_lists["Interjection"])
-        ]
-        
-        # Render the 8 category blocks sequentially
-        for title, word_list in all_categories:
-            with st.expander(f"{title} ({len(word_list)})", expanded=False):
-                if word_list:
-                    html_content = '<div style="margin-top: 10px;">'
-                    for word in word_list:
-                        # Translate individual word
-                        trans = translate_text(word)
-                        # Create custom HTML button linked to JavaScript text-to-speech engine
-                        html_content += f'<button class="audio-word-btn" onclick="speakWord(\'{word}\')">🔊 {word} ({trans})</button>'
-                    html_content += '</div>'
-                    st.markdown(html_content, unsafe_allow_html=True)
-                else:
-                    st.write("No vocabulary detected in this category.")
-            
-    else:
-        st.error("Please enter some English sentences first!")
+        try:
+            tts = gTTS(text=full_sentence, lang='en', slow=False)
+            filename = f"sentence_{i}.mp3"
+            tts.save(filename)
+            st.audio(filename, format="audio/mp3")
+        except Exception:
+            st.text("Loading audio tool...")
+    
+    st.write("---")
+    
+    # 2. 🎯 Bottom Feature: Advanced 8-POS Grammar Explorer
+    st.markdown("### 🔍 Grammar Focus: 8 Parts of Speech & Phrases")
+    st.write("Click on any word category below to explore. **Click any word button to play its sound instantly!**")
+    
+    # Hidden audio player trigger section
+    if st.session_state.play_word:
+        try:
+            word_tts = gTTS(text=st.session_state.play_word, lang='en', slow=False)
+            word_tts.save("temp_word.mp3")
+            st.audio("temp_word.mp3", format="audio/mp3", autoplay=True)
+            # Reset after playing
+            st.session_state.play_word = None
+        except Exception:
+            pass
+
+    # Extract lists
+    pos_lists, phrases = extract_eight_pos(current_text)
+    
+    # Define 8 Categories
+    all_categories = [
+        ("🔷 Noun", pos_lists["Noun"]),
+        ("流通 Pronoun", pos_lists["Pronoun"]),
+        ("🟢 Verb", pos_lists["Verb"]),
+        ("🔮 Adjective", pos_lists["Adjective"]),
+        ("🔶 Adverb", pos_lists["Adverb"]),
+        ("🚀 Phrase", phrases),
+        ("🔗 Conjunction", pos_lists["Conjunction"]),
+        ("📢 Interjection", pos_lists["Interjection"])
+    ]
+    
+    # Render the 8 category expanders sequentially with Streamlit Native Buttons
+    for title, word_list in all_categories:
+        with st.expander(f"{title} ({len(word_list)})", expanded=False):
+            if word_list:
+                # Use Streamlit columns to lay out the words like neat tags
+                cols = st.columns(3)
+                for index, word in enumerate(word_list):
+                    trans = translate_text(word)
+                    button_label = f"🔊 {word} ({trans})"
+                    
+                    # Target correct column wrapper
+                    with cols[index % 3]:
+                        if st.button(button_label, key=f"btn_{title}_{word}_{index}"):
+                            st.session_state.play_word = word
+                            st.rerun()
+            else:
+                st.write("No vocabulary detected in this category.")
