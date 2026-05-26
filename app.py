@@ -3,6 +3,7 @@ from gtts import gTTS
 import urllib.parse
 import json
 import urllib.request
+import re
 
 # 🎯 設定網頁配置，隱藏 Streamlit 官方選單與標籤
 st.set_page_config(
@@ -20,214 +21,33 @@ def translate_text(text, target_lang='zh-TW'):
             data = json.loads(response.read().decode('utf-8'))
             return "".join([sentence[0] for sentence in data[0] if sentence[0]])
     except Exception:
-        return "Translation temporarily unavailable, please try again!"
+        return "Translation temporarily unavailable..."
 
-# --- 🚀 網頁精美視覺設計 (CSS) 🚀 ---
-st.markdown("""
-    <style>
-    /* 用 CSS 隱藏右下角卡片與右上角選單 */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    .stAppDeployButton {display: none !important;}
-    div[data-testid="stDecoration"] {display: none !important;}
-
-    /* 全局背景與字體優化 */
-    .stApp {
-        background-color: #F8FAFC;
+# 🎯 核心新功能：聰明提取名詞與動詞（排除人名與常見代名詞）
+def extract_nouns_and_verbs(text):
+    # 預自定義一些英文中最常見、不需要背的極簡單字（代名詞、助動詞等）
+    stop_words = {
+        'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them',
+        'my', 'your', 'his', 'its', 'our', 'their', 'this', 'that', 'these', 'those',
+        'am', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had',
+        'do', 'does', 'did', 'can', 'could', 'will', 'would', 'shall', 'should', 'may', 'might', 'must',
+        'the', 'and', 'but', 'not', 'for', 'with', 'from', 'about', 'into', 'there', 'here', 'thing', 'things'
     }
     
-    /* 專屬商標：固定在左上角 */
-    .author-logo {
-        position: absolute;
-        top: -15px;             
-        left: 0px;              
-        font-size: 12px !important;
-        font-weight: 700 !important;
-        color: #1E4ED8 !important;   
-        background-color: #EFF6FF;  
-        padding: 5px 12px;
-        border-radius: 8px;        
-        border: 2px solid #BFDBFE;  
-        font-family: sans-serif;
-        letter-spacing: 0.5px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        z-index: 999;
-    }
+    # 1. 找出潛在的人名（非句首的大寫單字，例如 John, Mary）
+    # 先把完整的句子切開，找出那些在句子中間卻大寫的字
+    proper_nouns = set(re.findall(r'\b[A-Z][a-z]+\b', text))
+    # 找出句首的字（句號後面第一個大寫字），句首的大寫通常不是人名，所以不排除
+    sentence_starts = set(re.findall(r'(?:^|[.!?]\s+)([A-Z][a-z]+)', text))
+    # 真正要排除的人名 = 在中間大寫，且不是句首的字
+    names_to_exclude = {name.lower() for name in (proper_nouns - sentence_starts)}
+
+    # 2. 清理文章，抓出所有長度大於等於3的純英文單字
+    all_words = re.findall(r'\b[a-zA-Z]{3,}\b', text)
     
-    /* 大標題設計：漸層色彩、陰影 */
-    .app-header {
-        background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
-        padding: 30px;
-        border-radius: 20px;
-        box-shadow: 0 10px 15px -3px rgba(59, 131, 246, 0.2);
-        margin-bottom: 25px;
-        text-align: center;
-        position: relative; 
-    }
-    .main-title { 
-        font-size: 38px !important; 
-        font-weight: 800 !important; 
-        color: #FFFFFF !important; 
-        margin: 0px !important;
-        letter-spacing: 1px;
-    }
-    .sub-title {
-        font-size: 16px !important;
-        color: #E0F2FE !important;
-        margin-top: 8px !important;
-        opacity: 0.9;
-    }
+    nouns = set()
+    verbs = set()
     
-    /* 提示文字樣式 */
-    .input-label {
-        font-size: 22px !important;
-        font-weight: 900 !important;
-        color: #000000 !important;
-        margin-bottom: 12px !important;
-        display: block;
-    }
-
-    /* 置頂紅色聲明的樣式 */
-    .input-disclaimer {
-        font-size: 15px !important;
-        color: #EF4444 !important;    
-        font-weight: 700 !important;   
-        font-style: italic;           
-        margin-bottom: 15px !important;
-        display: block;
-    }
-
-    /* 輸入框：6 像素純黑超粗邊框 */
-    .stTextArea textarea {
-        border: 6px solid #000000 !important;  
-        border-radius: 14px !important;       
-        background-color: #FFFFFF !important;  
-        font-size: 20px !important;            
-        color: #000000 !important;
-        font-weight: 500 !important;
-    }
-    .stTextArea textarea:focus {
-        border-color: #1D4ED8 !important;     
-        box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.4) !important;
-    }
-    
-    /* START 按鈕的字體和外觀大幅放大加粗 */
-    .stButton button {
-        font-size: 24px !important;           
-        font-weight: 800 !important;           
-        padding: 14px 28px !important;         
-        border-radius: 12px !important;        
-        background-color: #FF9800 !important;  
-        color: #FFFFFF !important;             
-        border: none !important;
-        box-shadow: 0 4px 6px rgba(255, 152, 0, 0.3) !important; 
-        transition: all 0.2s ease;
-    }
-    .stButton button:hover {
-        background-color: #F57C00 !important;  
-        transform: translateY(-2px) !important; 
-        box-shadow: 0 6px 12px rgba(255, 152, 0, 0.4) !important;
-    }
-    
-    /* 每一句英文卡片的精美設計 */
-    .sentence-card {
-        background-color: #FFFFFF;
-        padding: 24px;
-        border-radius: 16px;
-        border-left: 6px solid #3B82F6;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-        margin-top: 20px;
-        margin-bottom: 10px;
-        transition: transform 0.2s;
-    }
-    .sentence-card:hover {
-        transform: translateY(-2px);
-    }
-    
-    /* 卡片內文字樣式 */
-    .card-index {
-        font-size: 14px !important;
-        font-weight: bold !important;
-        color: #3B82F6 !important;
-        text-transform: uppercase;
-        margin-bottom: 4px;
-    }
-    .english-text { 
-        font-size: 26px !important; 
-        font-weight: 600 !important; 
-        color: #0F172A !important; 
-        line-height: 1.4 !important;
-        margin-bottom: 12px !important; 
-    }
-    .chinese-text { 
-        font-size: 20px !important; 
-        font-weight: 500 !important;
-        color: #475569 !important; 
-        background-color: #F1F5F9;
-        padding: 10px 14px;
-        border-radius: 8px;
-        margin-bottom: 15px !important; 
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-# --- 🎨 畫面正式渲染 🎨 ---
-
-# 在網頁最頂端渲染左上角專屬 Logo 標籤
-st.markdown("""
-    <div class="author-logo">
-        🚀 AI Crafted by MACAOCMM
-    </div>
-""", unsafe_allow_html=True)
-
-# 頂部精美招牌
-st.markdown("""
-    <div class="app-header">
-        <p class="main-title">📱Smart Reading</p>
-        <p class="sub-title">Break down text • Listen sentence by sentence</p>
-    </div>
-""", unsafe_allow_html=True)
-
-# 置頂紅色免責聲明
-st.markdown('<span class="input-disclaimer">Powered by Google Translate. Content is for reference only and may not be perfect.</span>', unsafe_allow_html=True)
-
-# 輸入提示標題
-st.markdown('<p class="input-label">✍️ Paste your English text below:</p>', unsafe_allow_html=True)
-
-text_input = st.text_area("", height=180, placeholder="Once upon a time, there was a smart tool that helped students learn...")
-
-st.write("") # 留白
-
-# 啟動按鈕
-if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
-    if text_input.strip():
-        # 按句號、問號、感嘆號拆分句子
-        sentences = [s.strip() for s in text_input.replace('?', '.').replace('!', '.').split('.') if s.strip()]
-        
-        st.success(f"🎉 Awesome! We found {len(sentences)} sentences for you. Let's practice:")
-        
-        for i, sentence in enumerate(sentences):
-            full_sentence = sentence + "."
-            # 翻譯
-            translated = translate_text(full_sentence)
-            
-            # 用精美的卡片包裹英文與中文
-            st.markdown(f"""
-                <div class="sentence-card">
-                    <div class="card-index">Sentence {i+1}</div>
-                    <div class="english-text">{full_sentence}</div>
-                    <div class="chinese-text">💡 {translated}</div>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            # 語音播放條緊跟在卡片下方
-            try:
-                tts = gTTS(text=full_sentence, lang='en', slow=False)
-                tts.save(f"sentence_{i}.mp3")
-                st.audio(f"sentence_{i}.mp3", format="audio/mp3")
-            except Exception:
-                st.warning("Audio generation slightly delayed...")
-            
-    else:
-        st.warning("Please enter some English sentences first!")
+    # 常見字尾規律判斷（輕量級詞性分析）
+    verb_suffixes = ('ing', 'ed', 'ize', 'ify', 'ate', 'es')
+    noun_suffixes = ('tion', 'sion', 'ment', 'ence', 'ance', 'ity', 'ness', 'ship
