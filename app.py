@@ -89,4 +89,150 @@ st.markdown("""
     .author-logo {
         position: absolute; top: -15px; left: 0px;              
         font-size: 12px !important; font-weight: 700 !important;
-        color: #1E4ED8 !
+        color: #1E4ED8 !important; background-color: #EFF6FF;  
+        padding: 5px 12px; border-radius: 8px; border: 2px solid #BFDBFE;  
+        font-family: sans-serif; letter-spacing: 0.5px; z-index: 999;
+    }
+    
+    /* Main Top Header Banner */
+    .app-header {
+        background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
+        padding: 30px; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(59, 131, 246, 0.2);
+        margin-bottom: 25px; text-align: center; position: relative; 
+    }
+    .main-title { font-size: 38px !important; font-weight: 800 !important; color: #FFFFFF !important; margin: 0px !important;}
+    .sub-title { font-size: 15px !important; color: #E0F2FE !important; margin-top: 8px !important; }
+    
+    /* Input Labels and Disclaimers */
+    .input-label { font-size: 22px !important; font-weight: 900 !important; color: #000000 !important; display: block; margin-bottom: 8px !important; }
+    .input-disclaimer { font-size: 14px !important; color: #EF4444 !important; font-weight: 700 !important; font-style: italic; display: block; margin-bottom: 15px !important; }
+
+    /* Ultra-bold 6px Black Textarea Border */
+    .stTextArea textarea {
+        border: 6px solid #000000 !important; border-radius: 14px !important;       
+        background-color: #FFFFFF !important; font-size: 20px !important; color: #000000 !important; font-weight: 500 !important;
+    }
+    
+    /* Giant Vibrant Orange Action Button */
+    .stButton button {
+        font-size: 24px !important; font-weight: 800 !important; padding: 14px 28px !important;         
+        border-radius: 12px !important; background-color: #FF9800 !important; color: #FFFFFF !important; border: none !important;
+        box-shadow: 0 4px 6px rgba(255, 152, 0, 0.3) !important;
+    }
+
+    /* Core Reading Cards */
+    .sentence-card {
+        background-color: #FFFFFF; padding: 24px; border-radius: 16px; border-left: 6px solid #3B82F6;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-top: 20px; margin-bottom: 10px;
+    }
+    .english-text { font-size: 26px !important; font-weight: 600 !important; color: #0F172A !important; line-height: 1.4 !important; }
+    .chinese-text { font-size: 20px !important; font-weight: 500 !important; color: #475569 !important; background-color: #F1F5F9; padding: 10px 14px; border-radius: 8px; margin-top: 8px; }
+    
+    /* Grammar Analysis Box & Tags */
+    .analysis-box {
+        background-color: #FFFFFF; border: 3px solid #0EA5E9; padding: 22px; border-radius: 16px; margin-top: 15px;
+    }
+    .analysis-title { font-size: 20px !important; font-weight: 800 !important; margin-bottom: 12px; margin-top: 10px; }
+    .title-noun { color: #0284C7 !important; }
+    .title-verb { color: #15803D !important; }
+    .title-adverb { color: #B45309 !important; }
+    
+    .tags-container { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
+    .tag-noun { background-color: #E0F2FE; color: #0369A1; padding: 6px 12px; border-radius: 8px; font-weight: 600; font-size: 16px; border: 1px solid #BAE6FD; }
+    .tag-verb { background-color: #DCFCE7; color: #15803D; padding: 6px 12px; border-radius: 8px; font-weight: 600; font-size: 16px; border: 1px solid #BBF7D0; }
+    .tag-adverb { background-color: #FEF3C7; color: #92400E; padding: 6px 12px; border-radius: 8px; font-weight: 600; font-size: 16px; border: 1px solid #FDE68A; }
+    </style>
+""", unsafe_allow_html=True)
+
+# --- 🎨 UI Layout Rendering 🎨 ---
+
+st.markdown('<div class="author-logo">🚀 AI Crafted by MACAOCMM</div>', unsafe_allow_html=True)
+
+st.markdown("""
+    <div class="app-header">
+        <p class="main-title">📱 Smart Reading Buddy</p>
+        <p class="sub-title">Bridge to Form 1 • Master English Textbooks Easily</p>
+    </div>
+""", unsafe_allow_html=True)
+
+st.markdown('<span class="input-disclaimer">⚠️ Powered by Google Translate. Content is for reference only.</span>', unsafe_allow_html=True)
+st.markdown('<p class="input-label">✍️ Paste your English textbook text below:</p>', unsafe_allow_html=True)
+
+text_input = st.text_area("", height=180, placeholder="Type or paste paragraphs from your Math, Science, or English textbooks here...")
+
+st.write("") 
+
+# Main Process Button
+if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
+    if text_input.strip():
+        sentences = [s.strip() for s in text_input.replace('?', '.').replace('!', '.').split('.') if s.strip()]
+        st.success(f"🎉 Analysis Complete! We prepared {len(sentences)} sentences for your training:")
+        
+        # 1. Display Sentences, Translations, and Audio Player
+        for i, sentence in enumerate(sentences):
+            full_sentence = sentence + "."
+            translated = translate_text(full_sentence)
+            
+            st.markdown(f"""
+                <div class="sentence-card">
+                    <div style="font-size:13px; color:#3B82F6; font-weight:bold; text-transform:uppercase; margin-bottom:4px;">Sentence {i+1}</div>
+                    <div class="english-text">{full_sentence}</div>
+                    <div class="chinese-text">💡 中文翻譯：{translated}</div>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            try:
+                tts = gTTS(text=full_sentence, lang='en', slow=False)
+                tts.save(f"sentence_{i}.mp3")
+                st.audio(f"sentence_{i}.mp3", format="audio/mp3")
+            except Exception:
+                st.text("Loading audio tool...")
+        
+        st.write("---")
+        
+        # 2. 🎯 Bottom Feature: Grammar Analysis (Fully English Controlled Expansion)
+        st.markdown("### 🔍 Grammar Focus: Vocabulary Extractor")
+        st.write("Ready for a bigger challenge? Click below to extract key vocabulary categorized by parts of speech.")
+        
+        with st.expander("✨ Click to Extract Nouns, Verbs & Adverbs", expanded=False):
+            nouns, verbs, adverbs = extract_pos_tags(text_input)
+            
+            st.markdown('<div class="analysis-box">', unsafe_allow_html=True)
+            
+            # 🔵 Nouns List
+            st.markdown('<div class="analysis-title title-noun">🔷 Core Nouns (名詞 - No Names)</div>', unsafe_allow_html=True)
+            if nouns:
+                st.markdown('<div class="tags-container">', unsafe_allow_html=True)
+                for noun in nouns:
+                    trans_n = translate_text(noun)
+                    st.markdown(f'<span class="tag-noun">{noun} ({trans_n})</span>', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+            else:
+                st.write("No major nouns detected.")
+                
+            # 🟢 Verbs List
+            st.markdown('<div class="analysis-title title-verb">🟢 Action Verbs (動詞)</div>', unsafe_allow_html=True)
+            if verbs:
+                st.markdown('<div class="tags-container">', unsafe_allow_html=True)
+                for verb in verbs:
+                    trans_v = translate_text(verb)
+                    st.markdown(f'<span class="tag-verb">{verb} ({trans_v})</span>', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+            else:
+                st.write("No major verbs detected.")
+                
+            # 🟡 Adverbs List
+            st.markdown('<div class="analysis-title title-adverb">🔶 Useful Adverbs (副詞)</div>', unsafe_allow_html=True)
+            if adverbs:
+                st.markdown('<div class="tags-container">', unsafe_allow_html=True)
+                for adverb in adverbs:
+                    trans_a = translate_text(adverb)
+                    st.markdown(f'<span class="tag-adverb">{adverb} ({trans_a})</span>', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+            else:
+                st.write("No major adverbs detected.")
+                
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+    else:
+        st.error("Please enter some English sentences first!")
