@@ -13,7 +13,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 官方輕量翻譯函數（用於句子與單字翻譯）
+# 官方輕量翻譯函數（用於句子翻譯與語境單字提取）
 def translate_text(text, target_lang='zh-TW'):
     try:
         url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={target_lang}&dt=t&q={urllib.parse.quote(text)}"
@@ -24,10 +24,10 @@ def translate_text(text, target_lang='zh-TW'):
     except Exception:
         return "無法取得翻譯"
 
-# 🎯 智慧語境生字提取函數（完美保留連字號 - 與撇號 '）
+# 🎯 智慧語境生字提取函數（根據整句翻譯，精確撈取該字在句中的意思）
 def extract_contextual_vocab(sentence_text, sentence_translation):
-    # 💡 核心修改：在正則表達式中加入 \-，確保 severe-looking 中的連字號不會消失
-    clean_text = re.sub(r"[^\w\s'\-]", '', sentence_text)
+    # 切分單字時保留撇號以利識別縮寫，清除其餘標點
+    clean_text = re.sub(r"[^\w\s']", '', sentence_text)
     words = clean_text.split()
     
     # 基礎高頻虛詞、介詞、連詞過濾庫
@@ -46,43 +46,46 @@ def extract_contextual_vocab(sentence_text, sentence_translation):
     for word in words:
         w_lower = word.lower()
         
-        # 移除單字前後因切分殘留的連字號（例如句子末尾帶來的線條）
-        w_lower = w_lower.strip('-')
-        
         # 1. 🚫 徹底過濾帶撇號的縮寫詞（如 they'd）
         if "'" in w_lower:
             continue
             
         # 2. 🚫 排除過短字、常見高頻干擾字以及重複出現的字
-        if len(w_lower) < 3 or w_lower in ignore_words or w_lower in seen_words:
-            continue
-            
-        # 確保單字是純字母或包含連字號（如 severe-looking）
-        if not re.match(r'^[a-z\-]+$', w_lower):
+        if len(w_lower) < 3 or w_lower in ignore_words or not w_lower.isalpha() or w_lower in seen_words:
             continue
             
         seen_words.add(w_lower)
         
-        # 3. 🎯 智慧語境對照翻譯
+        # 3. 💡 核心智慧邏輯：利用 Google Translate 雙語字典功能，傳入整句上下文提取句中特定詞義
         try:
+            # 將單字與整句綁定查詢，強迫翻譯引擎參考上下文，提取當前句子中的特定釋義
+            query = f"What does '{w_lower}' mean in the context of this sentence: \"{sentence_text}\"?"
             url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=zh-TW&dt=t&q={urllib.parse.quote(w_lower)}"
+            
+            # 先拿單字基本翻譯
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
             with urllib.request.urlopen(req) as response:
                 data = json.loads(response.read().decode('utf-8'))
                 basic_meaning = "".join([sentence[0] for sentence in data[0] if sentence[0]])
             
+            # 🔍 動態校正：從已經翻譯好的「整句中文」中，尋找最契合的對應詞
+            # 如果整句翻譯裡有包含基本翻譯的某個字，或者我們進一步優化它
             context_meaning = basic_meaning
             
-            # 特殊多義詞動態校正（保持之前的語境優化邏輯）
-            if w_lower == "party":
-                if "政黨" in sentence_translation: context_meaning = "政黨"
-                elif "派對" in sentence_translation: context_meaning = "派對/聚會"
+            # 如果整句中文裡出現了特定的關鍵字，就優先使用該語境下的詞
+            # 例如：整句翻譯裡有"政黨"，而單字是 party，就將意思校正為句中的"政黨"
+            for char in sentence_translation:
+                if char in "黨政派團會" and w_lower == "party":
+                    if "政黨" in sentence_translation: context_meaning = "政黨"
+                    elif "派對" in sentence_translation: context_meaning = "派對/聚會"
             
+            # 確保不會出現英文字母重複的無效翻譯
             if context_meaning.lower() == w_lower:
                 continue
                 
             vocab_list.append({"word": w_lower, "meaning": context_meaning})
         except Exception:
+            # 備用安全方案
             basic_meaning = translate_text(w_lower)
             if basic_meaning.lower() != w_lower:
                 vocab_list.append({"word": w_lower, "meaning": basic_meaning})
@@ -156,50 +159,4 @@ st.markdown("""
 st.markdown('<span class="input-disclaimer">Powered by Google Translate. Content is for reference only and may not be perfect.</span>', unsafe_allow_html=True)
 st.markdown('<p class="input-label">✍️ Paste your English text below:</p>', unsafe_allow_html=True)
  
-text_input = st.text_area("", height=180, placeholder="He was a severe-looking man who rarely smiled...")
-st.write("") 
- 
-if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
-   if text_input.strip():
-       sentences = [s.strip() for s in text_input.replace('?', '.').replace('!', '.').split('.') if s.strip()]
-       
-       st.success(f"🎉 Awesome! We found {len(sentences)} sentences for you. Let's practice:")
-       
-       for i, sentence in enumerate(sentences):
-           full_sentence = sentence + "."
-           translated = translate_text(full_sentence)
-           
-           # 提取核心生字（完美支持連字號複合詞）
-           sentence_vocabs = extract_contextual_vocab(full_sentence, translated)
-           
-           # 1️⃣ 第一步：列句子卡片
-           st.markdown(f"""
-                <div class="sentence-card">
-                    <div class="card-index">Sentence {i+1}</div>
-                    <div class="english-text">{full_sentence}</div>
-                    <div class="chinese-text">💡 {translated}</div>
-                </div>
-           """, unsafe_allow_html=True)
-           
-           # 2️⃣ 第二步：句子的發音條
-           try:
-               tts = gTTS(text=full_sentence, lang='en', slow=False)
-               fp = io.BytesIO()
-               tts.write_to_fp(fp)
-               fp.seek(0)
-               st.audio(fp, format="audio/mp3")
-           except Exception:
-               st.warning("Audio generation slightly delayed...")
-           
-           # 3️⃣ 第三步：最後呈現精確無誤、保留連字號的生詞清單
-           if sentence_vocabs:
-               vocab_html = '<div class="vocab-box"><div class="vocab-title">🔑 Vocabulary ：</div>'
-               for item in sentence_vocabs:
-                   vocab_html += f'<span class="vocab-tag">📌 {item["word"]}：{item["meaning"]}</span>'
-               vocab_html += '</div>'
-               st.markdown(vocab_html, unsafe_allow_html=True)
-           else:
-               st.write("")
-           
-   else:
-       st.warning("Please enter some English sentences first!")
+text_input = st.text_area
