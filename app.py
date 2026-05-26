@@ -13,7 +13,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 🚀 輕量高效翻譯核心（單次請求，拒絕臃腫）
+# 🚀 輕量高效翻譯核心
 def translate_text(text, target_lang='zh-TW'):
     try:
         url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={target_lang}&dt=t&q={urllib.parse.quote(text)}"
@@ -24,13 +24,11 @@ def translate_text(text, target_lang='zh-TW'):
     except Exception:
         return "無法取得翻譯"
 
-# 🎯 高速語境生字提取函數（本地比對，大幅消滅延遲）
+# 🎯 高速語境生字提取函數
 def extract_fast_contextual_vocab(sentence_text, sentence_translation):
-    # 保留字母、撇號'和連字號-，確保 severe-looking 完整
     clean_text = re.sub(r"[^\w\s'\-]", ' ', sentence_text)
     words = clean_text.split()
     
-    # 基礎高頻虛詞過濾庫
     ignore_words = {
         'the', 'a', 'an', 'to', 'of', 'at', 'in', 'on', 'by', 'for', 'from', 'with', 'and', 'but', 
         'or', 'so', 'because', 'if', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'this', 'that', 
@@ -45,11 +43,9 @@ def extract_fast_contextual_vocab(sentence_text, sentence_translation):
     for word in words:
         w_lower = word.lower().strip('-')
         
-        # 1. 🚫 縮寫詞攔截線：包含撇號（如 they'd）一律扔掉
         if "'" in w_lower:
             continue
             
-        # 2. 🚫 基礎過濾：太短、常見字與重複字不處理
         if len(w_lower) < 3 or w_lower in ignore_words or w_lower in seen_words:
             continue
             
@@ -58,13 +54,10 @@ def extract_fast_contextual_vocab(sentence_text, sentence_translation):
             
         seen_words.add(w_lower)
         
-        # 3. 🏎️ 閃電本地語境提取（不再發送額外網路請求）
         try:
-            # 獲取單字字面基礎翻譯
             basic_meaning = translate_text(w_lower)
             context_meaning = basic_meaning
             
-            # 🔍 本地智慧交叉比對優化：直接依據已經拿到的整句中文翻譯做動態定向校正
             if w_lower == "party":
                 if "政黨" in sentence_translation: context_meaning = "政黨"
                 elif "派對" in sentence_translation or "聚會" in sentence_translation: context_meaning = "派對/聚會"
@@ -73,7 +66,6 @@ def extract_fast_contextual_vocab(sentence_text, sentence_translation):
                 if "輻條" in sentence_translation or "輪輻" in sentence_translation: context_meaning = "輻條"
                 elif "說" in sentence_translation or "談" in sentence_translation: context_meaning = "說話 (speak的過去式)"
             
-            # 如果單字是複合詞且翻譯未成功，嘗試做字面微調
             elif "-" in w_lower and context_meaning.lower() == w_lower:
                 continue
                 
@@ -131,12 +123,15 @@ st.markdown("""
    .english-text { font-size: 26px !important; font-weight: 600 !important; color: #0F172A !important; line-height: 1.4 !important; margin-bottom: 12px !important; }
    .chinese-text { font-size: 20px !important; font-weight: 500 !important; color: #475569 !important; background-color: #F1F5F9; padding: 10px 14px; border-radius: 8px; margin-bottom: 5px !important; }
 
-   .vocab-box { background-color: #FFFDF5; border: 1px dashed #FFD54F; border-radius: 10px; padding: 12px 16px; margin-top: 5px; margin-bottom: 25px; }
-   .vocab-title { font-size: 15px; font-weight: bold; color: #D84315; margin-bottom: 6px; }
+   .vocab-box { background-color: #FFFDF5; border: 1px dashed #FFD54F; border-radius: 10px; padding: 12px 16px; margin-top: 5px; margin-bottom: 10px; }
    .vocab-tag {
        display: inline-block; background-color: #FFF3E0; color: #E65100; padding: 4px 10px; border-radius: 6px;
        font-size: 15px; font-weight: bold; margin-right: 8px; margin-bottom: 8px; border: 1px solid #FFE0B2;
    }
+   
+   /* 讓 Streamlit 的摺疊面板標題看起來更醒目漂亮 */
+   .stExpander { border: none !important; box-shadow: none !important; margin-bottom: 20px !important; }
+   .stExpander summary { font-size: 16px !important; font-weight: bold !important; color: #D84315 !important; background-color: #FFFDE5 !important; border-radius: 8px !important; padding: 10px !important; }
    </style>
 """, unsafe_allow_html=True)
  
@@ -146,7 +141,7 @@ st.markdown('<div class="author-logo">🚀 AI Crafted by MACAOCMM</div>', unsafe
 st.markdown("""
    <div class="app-header">
        <p class="main-title">📱Smart Reading</p>
-       <p class="sub-title">Break down text • Learn sentence by sentence</p>
+       <p class="sub-title">Break down text • Learn step by step</p>
    </div>
 """, unsafe_allow_html=True)
  
@@ -158,7 +153,6 @@ st.write("")
  
 if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
    if text_input.strip():
-       # 支持多種常見斷句標點
        sentences = [s.strip() for s in text_input.replace('?', '.').replace('!', '.').split('.') if s.strip()]
        
        st.success(f"🎉 Awesome! We found {len(sentences)} sentences for you. Let's practice:")
@@ -167,7 +161,6 @@ if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
            full_sentence = sentence + "."
            translated = translate_text(full_sentence)
            
-           # 🏎️ 傳入翻譯結果，改用超高速本地比對提取
            sentence_vocabs = extract_fast_contextual_vocab(full_sentence, translated)
            
            # 1️⃣ 第一步：列句子卡片
@@ -189,13 +182,14 @@ if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
            except Exception:
                st.warning("Audio generation slightly delayed...")
            
-           # 3️⃣ 第三步：呈現精確符合句意的純淨生詞清單
+           # 3️⃣ 第三步：💡 核心修改：將生字本包進摺疊抽屜中，點擊才打開
            if sentence_vocabs:
-               vocab_html = '<div class="vocab-box"><div class="vocab-title">🔑 Vocabulary ：</div>'
-               for item in sentence_vocabs:
-                   vocab_html += f'<span class="vocab-tag">📌 {item["word"]}：{item["meaning"]}</span>'
-               vocab_html += '</div>'
-               st.markdown(vocab_html, unsafe_allow_html=True)
+               with st.expander("🔑 Vocabulary "):
+                   vocab_html = '<div class="vocab-box">'
+                   for item in sentence_vocabs:
+                       vocab_html += f'<span class="vocab-tag">📌 {item["word"]}：{item["meaning"]}</span>'
+                   vocab_html += '</div>'
+                   st.markdown(vocab_html, unsafe_allow_html=True)
            else:
                st.write("")
            
