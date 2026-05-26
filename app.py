@@ -4,14 +4,14 @@ import urllib.parse
 import json
 import urllib.request
 
-# 🎯 核心修改：設定網頁配置，直接隱藏 Streamlit 官方的所有選單與底部標籤
+# 🎯 設定網頁配置，隱藏 Streamlit 官方選單與標籤
 st.set_page_config(
     page_title="Smart Reading Buddy",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# Official lightweight translation function
+# 官方輕量翻譯函數
 def translate_text(text, target_lang='zh-TW'):
     try:
         url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={target_lang}&dt=t&q={urllib.parse.quote(text)}"
@@ -25,7 +25,7 @@ def translate_text(text, target_lang='zh-TW'):
 # --- 🚀 網頁精美視覺設計 (CSS) 🚀 ---
 st.markdown("""
     <style>
-    /* 🎯 終極大法：用 CSS 直接把右下角的卡片和右上角的選單在畫面上徹底抹去 */
+    /* 用 CSS 隱藏右下角卡片與右上角選單 */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
@@ -55,7 +55,7 @@ st.markdown("""
         z-index: 999;
     }
     
-    /* 大標題設計：漸層色彩、陰影與生動圖示 */
+    /* 大標題設計：漸層色彩、陰影 */
     .app-header {
         background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
         padding: 30px;
@@ -184,7 +184,7 @@ st.markdown("""
 # 頂部精美招牌
 st.markdown("""
     <div class="app-header">
-        <p class="main-title">📱Smart Reading</p>
+        <p class="main-title">📱 Smart Reading</p>
         <p class="sub-title">Break down text • Listen sentence by sentence</p>
     </div>
 """, unsafe_allow_html=True)
