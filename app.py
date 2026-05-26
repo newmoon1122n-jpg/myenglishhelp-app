@@ -211,7 +211,7 @@ if "processed_text" in st.session_state and st.session_state.processed_text.stri
     # Define 8 Categories
     all_categories = [
         ("🔷 Noun", pos_lists["Noun"]),
-        ("流通 Pronoun", pos_lists["Pronoun"]),
+        ("🟡 Pronoun", pos_lists["Pronoun"]),
         ("🟢 Verb", pos_lists["Verb"]),
         ("🔮 Adjective", pos_lists["Adjective"]),
         ("🔶 Adverb", pos_lists["Adverb"]),
