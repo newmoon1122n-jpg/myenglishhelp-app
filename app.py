@@ -151,7 +151,7 @@ st.markdown('<div class="author-logo">🚀 AI Crafted by MACAOCMM</div>', unsafe
  
 st.markdown("""
    <div class="app-header">
-       <p class="main-title">📱 Smart Reading</p>
+       <p class="main-title">📱Smart Reading</p>
        <p class="sub-title">Break down text • Learn step by step</p>
    </div>
 """, unsafe_allow_html=True)
@@ -196,7 +196,7 @@ if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
            
            # 3️⃣ 第三步：最後呈現【精確符合句意】的純淨生詞清單
            if sentence_vocabs:
-               vocab_html = '<div class="vocab-box"><div class="vocab-title">🔑 句子核心生字 (Key Vocabulary Focus)：</div>'
+               vocab_html = '<div class="vocab-box"><div class="vocab-title">🔑 Vocabulary ：</div>'
                for item in sentence_vocabs:
                    vocab_html += f'<span class="vocab-tag">📌 {item["word"]}：{item["meaning"]}</span>'
                vocab_html += '</div>'
