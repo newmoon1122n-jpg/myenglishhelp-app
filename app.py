@@ -24,12 +24,13 @@ def translate_text(text, target_lang='zh-TW'):
     except Exception:
         return "無法取得翻譯"
 
-# 🎯 輕量化句內生字過濾與詞性猜測
+# 🎯 輕量化句內生字過濾：精準鎖定四大詞性 (Noun, Verb, Adjective, Adverb)
 def extract_sentence_vocab(sentence_text):
+    # 清理標點符號並拆分單字
     clean_text = re.sub(r'[^\w\s]', '', sentence_text)
     words = clean_text.split()
     
-    # 排除常見基礎字
+    # 全面排除常見的基础高頻字（避免干擾實詞學習）
     ignore_words = {
         'the', 'a', 'an', 'to', 'of', 'at', 'in', 'on', 'by', 'for', 'from', 'with', 'and', 'but', 
         'or', 'so', 'because', 'if', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'this', 'that', 
@@ -41,25 +42,42 @@ def extract_sentence_vocab(sentence_text):
     
     for word in words:
         w_lower = word.lower()
+        # 基本過濾
         if len(w_lower) < 2 or w_lower in ignore_words or not w_lower.isalpha() or w_lower in seen_words:
             continue
             
         seen_words.add(w_lower)
         
-        # 詞性智能判斷 (字尾法則)
+        # 💡 依據字尾特徵進行高精度四大詞性智能分類
+        pos = None
+        
+        # 1. 副詞 (Adverb)
         if w_lower.endswith('ly'):
             pos = "adv."
-        elif w_lower.endswith(('tion', 'ness', 'ment', 'ity', 'ship', 'er', 'or', 'ist')):
+        # 2. 名詞 (Noun)
+        elif w_lower.endswith(('tion', 'ness', 'ment', 'ity', 'ship', 'er', 'or', 'ist', 'ism', 'ance', 'ence', 'logy')):
             pos = "n."
-        elif w_lower.endswith(('ful', 'less', 'able', 'ible', 'ive', 'ous', 'ish', 'al')):
+        # 3. 形容詞 (Adjective)
+        elif w_lower.endswith(('ful', 'less', 'able', 'ible', 'ive', 'ous', 'ish', 'al', 'ic', 'ant', 'ent')):
             pos = "adj."
-        elif w_lower.endswith(('ize', 'ify', 'ate')):
+        # 4. 動詞 (Verb)
+        elif w_lower.endswith(('ize', 'ify', 'ate', 'en')):
             pos = "v."
+        # 5. 時態或常見後綴處理（動詞或形容詞偏向）
         elif w_lower.endswith(('ed', 'ing')):
             pos = "v./adj."
         else:
-            pos = "w."
+            # 🔍 如果字尾不符合以上特徵，則進行語義長度或常見模式過濾
+            # 這裡作為通用名詞/動詞備用，確保生字不漏網，但排除連詞與介詞等虛詞
+            if w_lower in ['and', 'but', 'or', 'because', 'although', 'if', 'with', 'under', 'about', 'between', 'through']:
+                continue  # 徹底無情排除連詞、介詞
+            pos = "n./v."  # 一般實詞歸類為名詞/動詞
             
+        # 再次確保過濾掉未識別出的代名詞或介詞
+        if w_lower in ['my', 'your', 'his', 'her', 'its', 'our', 'their', 'me', 'him', 'them', 'us', 'who', 'whom', 'whose']:
+            continue
+            
+        # 翻譯核心生字
         chinese_meaning = translate_text(w_lower)
         if chinese_meaning.lower() == w_lower:
             continue
@@ -72,15 +90,10 @@ def extract_sentence_vocab(sentence_text):
 # --- 🚀 網頁精美視覺設計 (CSS) 🚀 ---
 st.markdown("""
    <style>
-   #MainMenu {visibility: hidden;}
-   footer {visibility: hidden;}
-   header {visibility: hidden;}
-   .stAppDeployButton {display: none !important;}
-   div[data-testid="stDecoration"] {display: none !important;}
+   #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
+   .stAppDeployButton {display: none !important;} div[data-testid="stDecoration"] {display: none !important;}
  
-   .stApp {
-       background-color: #F8FAFC;
-   }
+   .stApp { background-color: #F8FAFC; }
     
    .author-logo {
        position: absolute; top: -15px; left: 0px;              
@@ -95,7 +108,7 @@ st.markdown("""
        padding: 30px; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(59, 131, 246, 0.2);
        margin-bottom: 25px; text-align: center; position: relative; 
    }
-   .main-title { font-size: 38px !important; font-weight: 800 !important; color: #FFFFFF !important; margin: 0px !important; }
+   .main-title { font-size: 38px !important; font-weight: 800 !important; color: #FFFFFF !important; margin: 0px !important; letter-spacing: 1px; }
    .sub-title { font-size: 16px !important; color: #E0F2FE !important; margin-top: 8px !important; opacity: 0.9; }
    .input-label { font-size: 22px !important; font-weight: 900 !important; color: #000000 !important; margin-bottom: 12px !important; display: block; }
    .input-disclaimer { font-size: 15px !important; color: #EF4444 !important; font-weight: 700 !important; font-style: italic; margin-bottom: 15px !important; display: block; }
@@ -119,7 +132,6 @@ st.markdown("""
    .english-text { font-size: 26px !important; font-weight: 600 !important; color: #0F172A !important; line-height: 1.4 !important; margin-bottom: 12px !important; }
    .chinese-text { font-size: 20px !important; font-weight: 500 !important; color: #475569 !important; background-color: #F1F5F9; padding: 10px 14px; border-radius: 8px; margin-bottom: 5px !important; }
 
-   /* 生字庫專屬新樣式：獨立於卡片之外，間距更清晰 */
    .vocab-box { background-color: #FFFDF5; border: 1px dashed #FFD54F; border-radius: 10px; padding: 12px 16px; margin-top: 5px; margin-bottom: 25px; }
    .vocab-title { font-size: 15px; font-weight: bold; color: #D84315; margin-bottom: 6px; }
    .vocab-tag {
@@ -176,15 +188,14 @@ if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
            except Exception:
                st.warning("Audio generation slightly delayed...")
            
-           # 3️⃣ 第三步：最後才是生詞清單（完全獨立在發音條下方）
+           # 3️⃣ 第三步：最後呈現精確的四大詞性生詞清單
            if sentence_vocabs:
-               vocab_html = '<div class="vocab-box"><div class="vocab-title">🔑 Vocabulary Focus：</div>'
+               vocab_html = '<div class="vocab-box"><div class="vocab-title">🔑 句子核心生字 (Key Vocabulary Focus)：</div>'
                for item in sentence_vocabs:
                    vocab_html += f'<span class="vocab-tag">📌 {item["word"]} <span class="vocab-pos">({item["pos"]})</span>：{item["meaning"]}</span>'
                vocab_html += '</div>'
                st.markdown(vocab_html, unsafe_allow_html=True)
            else:
-               # 留下一點精美間距
                st.write("")
            
    else:
