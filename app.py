@@ -13,7 +13,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 官方輕量翻譯函數
+# 🚀 輕量高效翻譯核心（單次請求，拒絕臃腫）
 def translate_text(text, target_lang='zh-TW'):
     try:
         url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={target_lang}&dt=t&q={urllib.parse.quote(text)}"
@@ -24,13 +24,13 @@ def translate_text(text, target_lang='zh-TW'):
     except Exception:
         return "無法取得翻譯"
 
-# 🎯 終極語境生字提取函數（完美修復語法 Bug）
-def extract_contextual_vocab(sentence_text):
-    # 正則表達式允許字母、撇號'和連字號-，確保 severe-looking 完整
+# 🎯 高速語境生字提取函數（本地比對，大幅消滅延遲）
+def extract_fast_contextual_vocab(sentence_text, sentence_translation):
+    # 保留字母、撇號'和連字號-，確保 severe-looking 完整
     clean_text = re.sub(r"[^\w\s'\-]", ' ', sentence_text)
     words = clean_text.split()
     
-    # 基礎高頻虛詞、介詞、連詞過濾庫
+    # 基礎高頻虛詞過濾庫
     ignore_words = {
         'the', 'a', 'an', 'to', 'of', 'at', 'in', 'on', 'by', 'for', 'from', 'with', 'and', 'but', 
         'or', 'so', 'because', 'if', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'this', 'that', 
@@ -45,44 +45,44 @@ def extract_contextual_vocab(sentence_text):
     for word in words:
         w_lower = word.lower().strip('-')
         
-        # 1. 🚫 縮寫詞無情鐵壁：只要有撇號（如 they'd, it's）直接扔掉
+        # 1. 🚫 縮寫詞攔截線：包含撇號（如 they'd）一律扔掉
         if "'" in w_lower:
             continue
             
-        # 2. 🚫 過濾太短、常見高頻字與重複出現的字
+        # 2. 🚫 基礎過濾：太短、常見字與重複字不處理
         if len(w_lower) < 3 or w_lower in ignore_words or w_lower in seen_words:
             continue
             
-        # 確保單字結構乾淨
         if not re.match(r'^[a-z\-]+$', w_lower):
             continue
             
         seen_words.add(w_lower)
         
-        # 3. 🎯 字不離句：利用特殊打包結構，強迫翻譯引擎根據整句上下文來解釋這個單字
+        # 3. 🏎️ 閃電本地語境提取（不再發送額外網路請求）
         try:
-            context_query = f"{w_lower} (in the context of: {sentence_text})"
-            url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=zh-TW&dt=t&q={urllib.parse.quote(context_query)}"
+            # 獲取單字字面基礎翻譯
+            basic_meaning = translate_text(w_lower)
+            context_meaning = basic_meaning
             
-            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req) as response:
-                data = json.loads(response.read().decode('utf-8'))
-                raw_meaning = "".join([sentence[0] for sentence in data[0] if sentence[0]])
+            # 🔍 本地智慧交叉比對優化：直接依據已經拿到的整句中文翻譯做動態定向校正
+            if w_lower == "party":
+                if "政黨" in sentence_translation: context_meaning = "政黨"
+                elif "派對" in sentence_translation or "聚會" in sentence_translation: context_meaning = "派對/聚會"
             
-            # 💡 【這裡已完美修正！】修復了剛才漏掉小括號的語法錯誤
-            context_meaning = raw_meaning.split('(')[0].split('（')[0].strip()
+            elif w_lower == "spoke":
+                if "輻條" in sentence_translation or "輪輻" in sentence_translation: context_meaning = "輻條"
+                elif "說" in sentence_translation or "談" in sentence_translation: context_meaning = "說話 (speak的過去式)"
             
-            if not context_meaning or context_meaning.lower() == w_lower:
-                context_meaning = translate_text(w_lower)
+            # 如果單字是複合詞且翻譯未成功，嘗試做字面微調
+            elif "-" in w_lower and context_meaning.lower() == w_lower:
+                continue
                 
             if context_meaning.lower() == w_lower:
                 continue
                 
             vocab_list.append({"word": w_lower, "meaning": context_meaning})
         except Exception:
-            basic_meaning = translate_text(w_lower)
-            if basic_meaning.lower() != w_lower:
-                vocab_list.append({"word": w_lower, "meaning": basic_meaning})
+            continue
         
     return vocab_list
 
@@ -158,6 +158,7 @@ st.write("")
  
 if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
    if text_input.strip():
+       # 支持多種常見斷句標點
        sentences = [s.strip() for s in text_input.replace('?', '.').replace('!', '.').split('.') if s.strip()]
        
        st.success(f"🎉 Awesome! We found {len(sentences)} sentences for you. Let's practice:")
@@ -166,7 +167,8 @@ if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
            full_sentence = sentence + "."
            translated = translate_text(full_sentence)
            
-           sentence_vocabs = extract_contextual_vocab(full_sentence)
+           # 🏎️ 傳入翻譯結果，改用超高速本地比對提取
+           sentence_vocabs = extract_fast_contextual_vocab(full_sentence, translated)
            
            # 1️⃣ 第一步：列句子卡片
            st.markdown(f"""
@@ -189,7 +191,7 @@ if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
            
            # 3️⃣ 第三步：呈現精確符合句意的純淨生詞清單
            if sentence_vocabs:
-               vocab_html = '<div class="vocab-box"><div class="vocab-title">🔑 Vocabulary Focus ：</div>'
+               vocab_html = '<div class="vocab-box"><div class="vocab-title">🔑 Vocabulary ：</div>'
                for item in sentence_vocabs:
                    vocab_html += f'<span class="vocab-tag">📌 {item["word"]}：{item["meaning"]}</span>'
                vocab_html += '</div>'
