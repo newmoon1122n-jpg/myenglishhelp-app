@@ -151,7 +151,7 @@ st.markdown('<div class="author-logo">🚀 AI Crafted by MACAOCMM</div>', unsafe
  
 st.markdown("""
    <div class="app-header">
-       <p class="main-title">📱Smart Reading</p>
+       <p class="main-title">📱 Smart Reading</p>
        <p class="sub-title">Break down text • Learn step by step</p>
    </div>
 """, unsafe_allow_html=True)
@@ -159,4 +159,50 @@ st.markdown("""
 st.markdown('<span class="input-disclaimer">Powered by Google Translate. Content is for reference only and may not be perfect.</span>', unsafe_allow_html=True)
 st.markdown('<p class="input-label">✍️ Paste your English text below:</p>', unsafe_allow_html=True)
  
-text_input = st.text_area
+text_input = st.text_area("", height=180, placeholder="Once upon a time, there was a smart tool that helped students learn...")
+st.write("") 
+ 
+if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
+   if text_input.strip():
+       sentences = [s.strip() for s in text_input.replace('?', '.').replace('!', '.').split('.') if s.strip()]
+       
+       st.success(f"🎉 Awesome! We found {len(sentences)} sentences for you. Let's practice:")
+       
+       for i, sentence in enumerate(sentences):
+           full_sentence = sentence + "."
+           translated = translate_text(full_sentence)
+           
+           # 💡 核心修改：將「整句翻譯」傳入，讓生字解釋嚴格跟隨句意出發
+           sentence_vocabs = extract_contextual_vocab(full_sentence, translated)
+           
+           # 1️⃣ 第一步：列句子卡片
+           st.markdown(f"""
+                <div class="sentence-card">
+                    <div class="card-index">Sentence {i+1}</div>
+                    <div class="english-text">{full_sentence}</div>
+                    <div class="chinese-text">💡 {translated}</div>
+                </div>
+           """, unsafe_allow_html=True)
+           
+           # 2️⃣ 第二步：句子的發音條
+           try:
+               tts = gTTS(text=full_sentence, lang='en', slow=False)
+               fp = io.BytesIO()
+               tts.write_to_fp(fp)
+               fp.seek(0)
+               st.audio(fp, format="audio/mp3")
+           except Exception:
+               st.warning("Audio generation slightly delayed...")
+           
+           # 3️⃣ 第三步：最後呈現【精確符合句意】的純淨生詞清單
+           if sentence_vocabs:
+               vocab_html = '<div class="vocab-box"><div class="vocab-title">🔑 句子核心生字 (Key Vocabulary Focus)：</div>'
+               for item in sentence_vocabs:
+                   vocab_html += f'<span class="vocab-tag">📌 {item["word"]}：{item["meaning"]}</span>'
+               vocab_html += '</div>'
+               st.markdown(vocab_html, unsafe_allow_html=True)
+           else:
+               st.write("")
+           
+   else:
+       st.warning("Please enter some English sentences first!")
