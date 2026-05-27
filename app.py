@@ -248,4 +248,93 @@ if "quiz_vocabs" in query_params:
                         <strong>💡 Vocabulary Expansion Hint:</strong><br>
                         The targeted keyword is <strong>{target_word}</strong>. Try practicing this sentence aloud to build retention.
                     </div>
-                """,
+                """, unsafe_allow_html=True)
+                
+            st.write("<br><br>", unsafe_allow_html=True)
+    else:
+        st.warning("No vocabulary parameters detected. Please return to the reading panel.")
+        
+    st.write("---")
+    st.info("💡 Practice complete! You can safely close this browser window and go back to your main reading stream.")
+
+# ==========================================
+# ─── 📖 【Mode B: Main Reading Panel (Solid Audio Sync)】 ───
+# ==========================================
+else:
+    st.markdown('<div class="author-logo">🚀 AI Crafted by MACAOCMM</div>', unsafe_allow_html=True)
+     
+    st.markdown("""
+      <div class="app-header">
+          <p class="main-title">📱 Smart Reading Panel</p>
+          <p class="sub-title">Break down text • Learn step by step</p>
+       </div>
+    """, unsafe_allow_html=True)
+     
+    st.markdown('<span class="input-disclaimer">Content engine online. Verified secure framework.</span>', unsafe_allow_html=True)
+    st.markdown('<p class="input-label">✍️ Paste your English text below:</p>', unsafe_allow_html=True)
+     
+    text_input = st.text_area("", height=180, placeholder="Enter English text here...", key="main_text_input")
+    st.write("") 
+     
+    if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True, key="start_analysis_btn"):
+       if text_input.strip():
+          st.session_state.processed_text = text_input.strip()
+          if "audio_cache" in st.session_state:
+              del st.session_state.audio_cache
+       else:
+          st.warning("Please enter some English sentences first!")
+
+    if "processed_text" in st.session_state:
+          sentences = [s.strip() for s in st.session_state.processed_text.replace('?', '.').replace('!', '.').split('.') if s.strip()]
+          st.success(f"🎉 Analysis Complete! Found {len(sentences)} distinct segments. Let's practice:")
+          
+          if "audio_cache" not in st.session_state:
+              st.session_state.audio_cache = {}
+          
+          for i, sentence in enumerate(sentences):
+              full_sentence = sentence + "."
+              sentence_vocabs = extract_fast_contextual_vocab(full_sentence)
+              
+              # 1️⃣ Clean sentence cards with absolutely no Chinese elements
+              st.markdown(f"""
+                    <div class="sentence-card">
+                        <div class="card-index">Sentence {i+1}</div>
+                        <div class="english-text">{full_sentence}</div>
+                    </div>
+              """, unsafe_allow_html=True)
+              
+              # 2️⃣ Robust audio cache layer
+              try:
+                   if i not in st.session_state.audio_cache:
+                       tts = gTTS(text=full_sentence, lang='en', slow=False)
+                       fp = io.BytesIO()
+                       tts.write_to_fp(fp)
+                       fp.seek(0)
+                       st.session_state.audio_cache[i] = fp.read()
+                   
+                   st.audio(st.session_state.audio_cache[i], format="audio/mp3")
+              except Exception:
+                   st.warning("Audio generation slightly delayed...")
+              
+              # 3️⃣ English Vocabulary drawers
+              if sentence_vocabs:
+                   with st.expander("🔑 Vocabulary Track"):
+                       vocab_html = '<div class="vocab-box">'
+                       for item in sentence_vocabs:
+                           vocab_html += f'<span class="vocab-tag">📌 {item["word"]}</span>'
+                       vocab_html += '</div>'
+                       st.markdown(vocab_html, unsafe_allow_html=True)
+                       
+                       # 4️⃣ Fully English-targeted Quiz Redirection Button
+                       vocabs_json = json.dumps(sentence_vocabs)
+                       encoded_vocabs = urllib.parse.quote(vocabs_json)
+                       quiz_target_url = f"?quiz_vocabs={encoded_vocabs}"
+                       
+                       st.markdown(f"""
+                            <a href="{quiz_target_url}" target="_blank" class="quiz-link-btn">
+                                📝 Open Cloze Quiz (Sentence {i+1} • Fresh Context)
+                            </a>
+                       """, unsafe_allow_html=True)
+              else:
+                   st.write("")
+              st.markdown("<br>", unsafe_allow_html=True)
