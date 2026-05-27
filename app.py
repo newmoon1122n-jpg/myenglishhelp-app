@@ -5,6 +5,7 @@ import json
 import urllib.request
 import re
 import io
+import random
 
 # 🎯 網頁基礎配置
 st.set_page_config(
@@ -24,32 +25,51 @@ def translate_text(text, target_lang='zh-TW'):
     except:
         return "Translation Unavailable"
 
-# 🧠 免金鑰 AI 智能出題核心 (暗中生成全新英文句子)
+# 🧠 AI 智能出題核心：為每個單字暗中生成全新句子與「完全不一樣」的四選一干擾選項
 def generate_cloze_sentences_free(vocabs, sentence_text):
     target_words_str = ",".join([v["word"] for v in vocabs])
     
-    # 備用降級機制 (如果 AI 接口超時，自動降級使用原句挖空，確保教學不中斷)
+    # 🌟 基礎動態備用庫 (確保即使網路波動，每題選項也絕對不一樣)
+    base_distractors = ["challenge", "explore", "journey", "knowledge", "practice", "wisdom", "advance", "creative", "imagine", "observe", "active", "scenery", "wonder", "perfect", "culture", "nature", "history", "science", "future", "digital", "world", "learning"]
+    
     fallback_data = []
     for v in vocabs:
         pattern = re.compile(re.escape(v["word"]), re.IGNORECASE)
         blanked = pattern.sub("_______", sentence_text)
+        # 動態挑選不一樣的干擾生字
+        wrong_choices = [w for w in base_distractors if w.lower() != v["word"].lower()]
+        selected_wrong = random.sample(wrong_choices, 3)
         fallback_data.append({
             "target_word": v["word"],
             "new_sentence": blanked,
-            "meaning": v["meaning"]
+            "meaning": v["meaning"],
+            "distractors": selected_wrong
         })
         
-    prompt = f"Generate 1 new, distinct simple English sentence for each word in [{target_words_str}]. Replace the word with '_______'. Respond ONLY in raw JSON format like this: [{{\"target_word\":\"word\",\"new_sentence\":\"The _______ is here.\"}}]"
+    # 讓 AI 同時生成全新的句子與 3 個高質量的英文干擾生字
+    prompt = f"For each word in [{target_words_str}], generate 1 new simple English sentence replacing the word with '_______'. Also, provide 3 distinct, plausible incorrect English words as distractors. Respond ONLY in raw JSON format like this: [{{\"target_word\":\"word\",\"new_sentence\":\"The _______ is clear.\",\"distractors\":[\"wrong1\",\"wrong2\",\"wrong3\"]}}]"
     try:
         url = f"https://text.pollinations.ai/{urllib.parse.quote(prompt)}"
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=8) as response:
+        with urllib.request.urlopen(req, timeout=10) as response:
             ai_reply = response.read().decode('utf-8').strip()
             clean_json_str = re.sub(r'^```json\s*|\s*```$', '', ai_reply)
             new_data = json.loads(clean_json_str)
             
+            # 對齊中文意思，並驗證干擾選項
             for item in new_data:
                 tw = item["target_word"].lower()
+                # 確保干擾選項存在且不包含正確答案
+                if "distractors" not in item or len(item["distractors"]) < 3:
+                    wrong_choices = [w for w in base_distractors if w.lower() != tw]
+                    item["distractors"] = random.sample(wrong_choices, 3)
+                else:
+                    item["distractors"] = [d for d in item["distractors"] if d.lower() != tw][:3]
+                    while len(item["distractors"]) < 3:
+                        extra = random.choice(base_distractors)
+                        if extra.lower() != tw and extra not in item["distractors"]:
+                            item["distractors"].append(extra)
+                            
                 for v in vocabs:
                     if v["word"].lower() == tw:
                         item["meaning"] = v["meaning"]
@@ -79,7 +99,7 @@ def extract_vocab(sentence_text, sentence_translation):
         except: continue
     return vocab_list
 
-# --- 🚀 全局前端樣式集中管理 (CSS 絕無多重引號嵌套) ---
+# --- 🚀 全局前端樣式集中管理 (CSS) ---
 st.markdown("""
    <style>
    #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
@@ -143,7 +163,7 @@ st.markdown("""
 query_params = st.query_params
 
 # ==========================================
-# ─── 🚪 【模式 A：獨立互動測驗頁 (AI 智能出題)】 ───
+# ─── 🚪 【模式 A：獨立互動測驗頁 (動態生字盲測模式)】 ───
 # ==========================================
 if "cloze_json" in query_params:
     cloze_json_raw = urllib.parse.unquote(query_params["cloze_json"])
@@ -164,6 +184,7 @@ if "cloze_json" in query_params:
         target_word = quiz_item.get("target_word", "error")
         meaning = quiz_item.get("meaning", "")
         new_sentence = quiz_item.get("new_sentence", "_______")
+        distractors = quiz_item.get("distractors", ["wordA", "wordB", "wordC"])
         
         st.markdown(f"""
         <div class="quiz-box">
@@ -172,11 +193,13 @@ if "cloze_json" in query_params:
         </div>
         """, unsafe_allow_html=True)
         
-        options = [target_word]
-        fallback = ["spoke", "party", "formal", "bench", "translate", "future", "system", "lessons", "think", "eyes", "clear"]
-        for fb in fallback:
-            if len(options) < 4 and fb.lower() != target_word.lower() and fb not in options:
-                options.append(fb)
+        # 💥 核心改進：結合 AI 生出的獨立干擾生字，確保每一題的選項全部都不一樣！
+        options = list(set([target_word] + distractors))
+        # 若因去重少於 4 個，自動補足
+        emergency_words = ["wonder", "system", "future", "clear", "active", "scenery"]
+        for ew in emergency_words:
+            if len(options) < 4 and ew.lower() != target_word.lower() and ew not in options:
+                options.append(ew)
         options = sorted(options)
         
         state_key = f"q_submitted_{idx}"
@@ -217,18 +240,15 @@ if "cloze_json" in query_params:
 # ─── 📖 【模式 B：閱讀主頁面工作區 (保留所有設置)】 ───
 # ==========================================
 else:
-    # 頂部標籤與藍色橫幅
     st.markdown('<div class="macaocmm-badge">🚀 AI Crafted by MACAOCMM</div>', unsafe_allow_html=True)
     st.markdown('<div class="header-banner"><h1>📱 Smart Reading</h1><p>Break down text • Learn step by step</p></div>', unsafe_allow_html=True)
     
     st.markdown('<p style="color: #FF0000; font-size: 14px; font-weight: bold; margin-bottom: 15px;">Powered by Google Translate. Content is for reference only and may not be perfect.</p>', unsafe_allow_html=True)
     st.markdown('<p style="font-size:22px; font-weight:800; color:#000000; margin-bottom: 5px;">✍️ Paste your English text below:</p>', unsafe_allow_html=True)
     
-    # 粗黑框輸入區
     text_input = st.text_area("", height=150, placeholder="Enter English text here...")
     st.write("") 
     
-    # 亮橙色分析按鈕
     if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
         if text_input.strip():
             clean_input = re.sub(r'^\d+\s+', '', text_input.strip())
@@ -259,7 +279,7 @@ else:
                 except:
                     pass
                 
-                # 🧡 溫潤橙金色 Vocabulary 抽屜
+                # 溫潤橙金色 Vocabulary 抽屜
                 if vocabs:
                     with st.expander("🔑 Vocabulary"):
                         v_html = '<div class="vocab-box">'
@@ -268,7 +288,7 @@ else:
                         v_html += '</div>'
                         st.markdown(v_html, unsafe_allow_html=True)
                         
-                        # 後台默默執行 AI 生成全新句子題型
+                        # 💥 每一次迴圈，皆為當前句子獨立請求 AI 生成專屬題型與全新干擾單字
                         with st.spinner(f"⚡ AI is crafting new contextual questions for Sentence {i+1}..."):
                             new_quiz_sentences_data = generate_cloze_sentences_free(vocabs, full_sent)
                         
