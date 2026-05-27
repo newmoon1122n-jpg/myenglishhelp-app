@@ -80,7 +80,7 @@ st.markdown("""
    .input-label { font-size: 22px !important; font-weight: 900 !important; color: #000000 !important; margin-bottom: 12px !important; display: block; }
    .input-disclaimer { font-size: 14px !important; color: #EF4444 !important; font-weight: 700 !important; margin-bottom: 15px !important; display: block; }
    .stTextArea textarea { border: 6px solid #000000 !important; border-radius: 14px !important; background-color: #FFFFFF !important; font-size: 20px !important; color: #000000 !important; font-weight: 500 !important; }
-   .stButton button { font-size: 24px !important; font-weight: 800 !important; padding: 14px 28px !important; border-radius: 12px !important; background-color: #FF9800 !important; color: #FFFFFF !important; border: none !important; }
+   .stButton button { font-size: 24px !important; font-weight: 800 !important; padding: 14px 28px !important; border-radius: 12px !important; background-color: #FF9800 !important; color: #FFFFFF !important; border: none !important; width: 100% !important; }
    .sentence-card { background-color: #FFFFFF; padding: 24px; border-radius: 16px; border-left: 6px solid #3B82F6; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-top: 20px; margin-bottom: 5px; }
    .card-index { font-size: 14px !important; font-weight: bold !important; color: #3B82F6 !important; text-transform: uppercase; margin-bottom: 4px; }
    .english-text { font-size: 26px !important; font-weight: 600 !important; color: #0F172A !important; line-height: 1.4 !important; margin-bottom: 12px !important; }
@@ -89,8 +89,8 @@ st.markdown("""
    .vocab-tag { display: inline-block; background-color: #FFF3E0; color: #E65100; padding: 4px 10px; border-radius: 6px; font-size: 15px; font-weight: bold; margin-right: 8px; margin-bottom: 8px; border: 1px solid #FFE0B2; }
    .stExpander { border: none !important; box-shadow: none !important; margin-bottom: 10px !important; }
    
-   /* Hyperlink Link Button Style */
-   .popup-link-btn { display: inline-block; text-align: center; width: 100%; padding: 12px 24px; background-color: #10B981; color: white !important; font-size: 18px; font-weight: bold; border-radius: 8px; text-decoration: none; margin-top: 12px; }
+   /* 🟩 綠色開新分頁按鈕樣式 */
+   .popup-link-btn { display: inline-block; text-align: center; width: 100%; padding: 14px 24px; background-color: #10B981; color: white !important; font-size: 18px; font-weight: bold; border-radius: 8px; text-decoration: none; margin-top: 12px; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.2); }
    .popup-link-btn:hover { background-color: #059669; text-decoration: none; }
    </style>
 """, unsafe_allow_html=True)
@@ -110,7 +110,7 @@ st.markdown('<p class="input-label">✍️ Paste your English text below:</p>', 
 text_input = st.text_area("", height=180, placeholder="Enter English text here...")
 st.write("") 
 
-if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
+if st.button("🚀 Start Audio & Reading Analysis"):
    if text_input.strip():
        clean_input = re.sub(r'^\d+\s+', '', text_input.strip())
        sentences = [s.strip() for s in clean_input.replace('?', '.').replace('!', '.').split('.') if s.strip()]
@@ -146,12 +146,12 @@ if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
                    vocab_html += '</div>'
                    st.markdown(vocab_html, unsafe_allow_html=True)
                    
-                   # Safely encode parameters
+                   # 打包生字並進行網址安全編碼
                    words_only = [item["word"] for item in sentence_vocabs]
                    encoded_sentence = urllib.parse.quote(full_sentence)
                    encoded_words = urllib.parse.quote(",".join(words_only))
                    
-                   # Multi-page routing link
+                   # 🟩 生成點擊後開新分頁（target="_blank"）的按鈕，徹底取代舊的 Cloze Quiz 抽屜
                    target_url = f"quiz?sentence={encoded_sentence}&words={encoded_words}"
                    st.markdown(f'<a href="{target_url}" target="_blank" class="popup-link-btn">📝 Open Cloze Quiz ({len(sentence_vocabs)} Questions) in New Tab</a>', unsafe_allow_html=True)
            st.markdown("<br>", unsafe_allow_html=True)
