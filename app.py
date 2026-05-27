@@ -129,9 +129,11 @@ st.markdown("""
        font-size: 15px; font-weight: bold; margin-right: 8px; margin-bottom: 8px; border: 1px solid #FFE0B2;
    }
    
-   /* 讓 Streamlit 的摺疊面板標題看起來更醒目漂亮 */
-   .stExpander { border: none !important; box-shadow: none !important; margin-bottom: 20px !important; }
-   .stExpander summary { font-size: 16px !important; font-weight: bold !important; color: #D84315 !important; background-color: #FFFDE5 !important; border-radius: 8px !important; padding: 10px !important; }
+   /* 精細微調 Streamlit 摺疊面板的背景色與標題字體 */
+   .stExpander { border: none !important; box-shadow: none !important; margin-bottom: 10px !important; }
+   
+   .quiz-box { background-color: #F0Fdf4; border: 1px dashed #4ADE80; border-radius: 10px; padding: 16px; margin-top: 5px; }
+   .quiz-prompt { font-size: 18px !important; font-weight: bold !important; color: #166534 !important; margin-bottom: 10px; }
    </style>
 """, unsafe_allow_html=True)
  
@@ -140,7 +142,7 @@ st.markdown('<div class="author-logo">🚀 AI Crafted by MACAOCMM</div>', unsafe
  
 st.markdown("""
    <div class="app-header">
-       <p class="main-title">📱Smart Reading</p>
+       <p class="main-title">📱 Smart Reading</p>
        <p class="sub-title">Break down text • Learn step by step</p>
    </div>
 """, unsafe_allow_html=True)
@@ -182,16 +184,24 @@ if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
            except Exception:
                st.warning("Audio generation slightly delayed...")
            
-           # 3️⃣ 第三步：💡 核心修改：將生字本包進摺疊抽屜中，點擊才打開
+           # 3️⃣ 第三步：黃色抽屜正名 🔑 Vocabulary
            if sentence_vocabs:
-               with st.expander("🔑 Vocabulary "):
+               with st.expander("🔑 Vocabulary"):
                    vocab_html = '<div class="vocab-box">'
                    for item in sentence_vocabs:
                        vocab_html += f'<span class="vocab-tag">📌 {item["word"]}：{item["meaning"]}</span>'
                    vocab_html += '</div>'
                    st.markdown(vocab_html, unsafe_allow_html=True)
-           else:
-               st.write("")
-           
-   else:
-       st.warning("Please enter some English sentences first!")
+                   
+               # 4️⃣ 第四步：藍色抽屜正名 📝 Cloze Quiz
+               with st.expander("📝 Cloze Quiz"):
+                   # 預設挑選這句話裡的第一個生字來挖空
+                   target_vocab = sentence_vocabs[0]
+                   target_word = target_vocab["word"]
+                   target_meaning = target_vocab["meaning"]
+                   
+                   # 將英文句子中的目標單字替換成底線（忽略大小寫）
+                   pattern = re.compile(re.escape(target_word), re.IGNORECASE)
+                   blanked_sentence = pattern.sub("_______", full_sentence)
+                   
+                   # 準備 4 個
