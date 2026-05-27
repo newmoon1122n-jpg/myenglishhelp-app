@@ -14,7 +14,7 @@ st.set_page_config(
    initial_sidebar_state="collapsed"
 )
  
-# 🚀 輕量高效翻譯核心（主面板雙語對照用）
+# 🚀 輕量高效翻譯核心
 def translate_text(text, target_lang='zh-TW'):
    try:
        url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={target_lang}&dt=t&q={urllib.parse.quote(text)}"
@@ -25,7 +25,7 @@ def translate_text(text, target_lang='zh-TW'):
    except Exception:
        return "無法取得翻譯"
  
-# 🎯 語境生字提取函數（保留中文意思對照）
+# 🎯 高速語境生字提取函數
 def extract_fast_contextual_vocab(sentence_text, sentence_translation):
    clean_text = re.sub(r"[^\w\s'\-]", ' ', sentence_text)
    words = clean_text.split()
@@ -56,7 +56,8 @@ def extract_fast_contextual_vocab(sentence_text, sentence_translation):
        seen_words.add(w_lower)
         
        try:
-           context_meaning = translate_text(w_lower)
+           basic_meaning = translate_text(w_lower)
+           context_meaning = basic_meaning
            
            if w_lower == "party":
                 if "政黨" in sentence_translation: context_meaning = "政黨"
@@ -78,59 +79,33 @@ def extract_fast_contextual_vocab(sentence_text, sentence_translation):
        
    return vocab_list
 
-# 🧠 Gemini AI 穩定智能出題核心 (確保100%生成全新英文句子)
-def generate_cloze_sentences_gemini(vocabs):
+# 🧠 AI 智能出題核心：在新分頁中為每個生字獨立打造全新語境句子與「完全不同」的四選一選項
+def generate_cloze_sentences_free(vocabs):
     target_words_str = ",".join([v["word"] for v in vocabs])
+    
+    # 🌟 豐富的動態干擾字庫，確保往下拉時每題選項絕對不重複
     base_distractors = ["challenge", "explore", "journey", "knowledge", "practice", "wisdom", "advance", "creative", "imagine", "observe", "active", "scenery", "wonder", "perfect", "culture", "nature", "history", "science", "future", "digital", "world", "learning", "opinion", "society", "experience", "language", "ability", "improve", "express", "develop"]
     
-    # 建立動態的隨機備用數據 (避免固定句子的fallback)
     fallback_data = []
     for v in vocabs:
         wrong_choices = [w for w in base_distractors if w.lower() != v["word"].lower()]
         selected_wrong = random.sample(wrong_choices, 3)
-        # 動態生成不同的基礎英文句子結構
-        sentence_templates = [
-            f"Technology helps to _______ our modern lives every day.",
-            f"It is important to _______ new methods when facing a difficult task.",
-            f"The teacher encouraged us to _______ our potential in this project.",
-            f"We need to carefully _______ the details before making a final choice."
-        ]
         fallback_data.append({
             "target_word": v["word"],
-            "new_sentence": random.choice(sentence_templates),
+            "new_sentence": f"We need to _______ our skills in the digital world.",
             "meaning": v["meaning"],
             "distractors": selected_wrong
         })
         
-    # 檢查是否有設定 Gemini API 金鑰
-    if "GEMINI_API_KEY" not in st.secrets:
-        return fallback_data
-
-    # 構造嚴格的 Gemini API 請求
-    api_key = st.secrets["GEMINI_API_KEY"]
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
-    
-    prompt = f"For each word in [{target_words_str}], generate 1 completely new, unique, and simple English contextual sentence replacing the word with '_______'. Also, provide 3 distinct, plausible incorrect English words as distractors. Respond ONLY in raw JSON format like this: [{{\"target_word\":\"word\",\"new_sentence\":\"The _______ is clear.\",\"distractors\":[\"wrong1\",\"wrong2\",\"wrong3\"]}}]"
-    
-    payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "responseMimeType": "application/json"
-        }
-    }
-    
+    prompt = f"For each word in [{target_words_str}], generate 1 new simple English sentence replacing the word with '_______'. Also, provide 3 distinct, plausible incorrect English words as distractors. Respond ONLY in raw JSON format like this: [{{\"target_word\":\"word\",\"new_sentence\":\"The _______ is clear.\",\"distractors\":[\"wrong1\",\"wrong2\",\"wrong3\"]}}]"
     try:
-        req = urllib.request.Request(
-            url, 
-            data=json.dumps(payload).encode('utf-8'),
-            headers={'Content-Type': 'application/json'}
-        )
+        url = f"https://text.pollinations.ai/{urllib.parse.quote(prompt)}"
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
         with urllib.request.urlopen(req, timeout=12) as response:
-            res_data = json.loads(response.read().decode('utf-8'))
-            ai_reply = res_data["candidates"][0]["content"]["parts"][0]["text"].strip()
-            new_data = json.loads(ai_reply)
+            ai_reply = response.read().decode('utf-8').strip()
+            clean_json_str = re.sub(r'^```json\s*|\s*```$', '', ai_reply)
+            new_data = json.loads(clean_json_str)
             
-            # 清洗並校對 AI 回傳的數據結構
             for item in new_data:
                 tw = item["target_word"].lower()
                 if "distractors" not in item or len(item["distractors"]) < 3:
@@ -148,12 +123,11 @@ def generate_cloze_sentences_gemini(vocabs):
                         item["meaning"] = v["meaning"]
                         break
             return new_data
-    except Exception as e:
-        # 如果出錯，回傳至少有動態變化的 fallback 數據
+    except:
         return fallback_data
 
 
-# --- 🚀 CSS 排版美化 🚀 ---
+# --- 🚀 網頁精美視覺設計 (CSS) 🚀 ---
 st.markdown("""
   <style>
   #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
@@ -206,6 +180,7 @@ st.markdown("""
   .stExpander { border: none !important; box-shadow: none !important; margin-bottom: 20px !important; }
   .stExpander summary { font-size: 16px !important; font-weight: bold !important; color: #D84315 !important; background-color: #FFFDE5 !important; border-radius: 8px !important; padding: 10px !important; }
   
+  /* 🟩 老師專屬：經典鮮綠色開新網頁分頁按鍵樣式 */
   .quiz-link-btn {
       display: inline-block; text-align: center; width: 100%; padding: 12px;
       background-color: #10B981 !important; color: white !important;
@@ -215,16 +190,18 @@ st.markdown("""
   }
   .quiz-link-btn:hover { background-color: #059669 !important; text-decoration: none !important; }
   
+  /* 📝 新網頁測驗卡片外觀 */
   .quiz-page-card { background-color: #FFFFFF; border: 2px solid #E2E8F0; border-radius: 12px; padding: 20px; margin-bottom: 15px; }
   .quiz-page-prompt { font-size: 16px !important; font-weight: bold !important; color: #1E3A8A !important; margin-bottom: 8px; }
   .explanation-page-box { background-color: #EFF6FF; border-left: 4px solid #3B82F6; padding: 12px 16px; border-radius: 4px; margin-top: 10px; font-size: 16px; color: #1E40AF; }
   </style>
 """, unsafe_allow_html=True)
 
+# 🌐 讀取網址參數，判斷是否為「新開啟的獨立測驗分頁」
 query_params = st.query_params
 
 # ==========================================
-# ─── 🚪 【模式 A：小測驗分頁 (全英文介面修復版)】 ───
+# ─── 🚪 【模式 A：全新網頁分頁框 (獨立小測驗)】 ───
 # ==========================================
 if "quiz_vocabs" in query_params:
     vocabs_raw = urllib.parse.unquote(query_params["quiz_vocabs"])
@@ -233,20 +210,18 @@ if "quiz_vocabs" in query_params:
     except:
         incoming_vocabs = []
         
-    # ✨ 測驗頁頭部：全面修正為純正英文
     st.markdown("""
         <div style='text-align: center; margin-top: 15px; margin-bottom: 25px;'>
             <h2 style='color: #1E3A8A; font-weight: 800; margin-bottom:5px;'>📝 Contextual Cloze Quiz</h2>
-            <p style='color: #64748B; font-size: 16px;'>Enhance your English application: Fill in the blank using the best targeted word.</p>
+            <p style='color: #64748B; font-size: 16px;'>提升英文應用能力：請根據 AI 全新生成的語境情境選擇最佳單字</p>
         </div>
     """, unsafe_allow_html=True)
     st.write("---")
     
     if incoming_vocabs:
         if "session_quiz_data" not in st.session_state:
-            # ✨ 轉圈提示全面改為英文
-            with st.spinner("⚡ AI is constructing fresh contextual questions and options for you..."):
-                st.session_state.session_quiz_data = generate_cloze_sentences_gemini(incoming_vocabs)
+            with st.spinner("⚡ Gemini AI 正在為您暗中打造全新的應用題型與選項..."):
+                st.session_state.session_quiz_data = generate_cloze_sentences_free(incoming_vocabs)
         
         for idx, quiz_item in enumerate(st.session_state.session_quiz_data):
             target_word = quiz_item.get("target_word", "error")
@@ -285,34 +260,34 @@ if "quiz_vocabs" in query_params:
                 
             if st.session_state[state_key]:
                 if user_choice.lower() == target_word.lower():
-                    st.success(f"🎉 Excellent! '{user_choice}' is perfectly correct.")
+                    st.success(f"🎉 太棒了！ '{user_choice}' 完全正確。")
                 else:
-                    st.error(f"❌ Incorrect choice. The correct target word is: **{target_word}**")
+                    st.error(f"❌ 不夠準確。正確答案應該是: **{target_word}**")
                 
-                # ✨ 反饋框英文顯示
                 st.markdown(f"""
                     <div class="explanation-page-box">
-                        <strong>💡 Target Vocabulary Hint:</strong><br>
-                        Core word: <strong>{target_word}</strong> (Meaning: {meaning})<br>
+                        <strong>💡 應用能力提升提示：</strong><br>
+                        核心單字：<strong>{target_word}</strong>（中文意思：{meaning}）<br>
+                        全新應用句翻譯：{translate_text(new_sentence, target_lang='zh-TW')}
                     </div>
                 """, unsafe_allow_html=True)
                 
             st.write("<br><br>", unsafe_allow_html=True)
     else:
-        st.warning("No vocabulary parameters detected. Please go back to the reading stream.")
+        st.warning("未偵測到生字數據，請返回主頁重新分析。")
         
     st.write("---")
-    st.info("💡 Practice complete! You can close this browser tab and continue reading.")
+    st.info("💡 練習完畢！您可以直接關閉此網頁分頁，返回原文章閱讀面板。")
 
 # ==========================================
-# ─── 📖 【模式 B：文章閱讀主網頁（完美保留雙語）】 ───
+# ─── 📖 【模式 B：文章閱讀主網頁 (防掉音軌優化版)】 ───
 # ==========================================
 else:
     st.markdown('<div class="author-logo">🚀 AI Crafted by MACAOCMM</div>', unsafe_allow_html=True)
      
     st.markdown("""
       <div class="app-header">
-          <p class="main-title">📱 Smart Reading</p>
+          <p class="main-title">📱Smart Reading</p>
           <p class="sub-title">Break down text • Learn step by step</p>
        </div>
     """, unsafe_allow_html=True)
@@ -326,6 +301,7 @@ else:
     if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True, key="start_analysis_btn"):
        if text_input.strip():
           st.session_state.processed_text = text_input.strip()
+          # 🔄 清空舊的語音緩存，確保新文章重新生成語音
           if "audio_cache" in st.session_state:
               del st.session_state.audio_cache
        else:
@@ -335,6 +311,7 @@ else:
           sentences = [s.strip() for s in st.session_state.processed_text.replace('?', '.').replace('!', '.').split('.') if s.strip()]
           st.success(f"🎉 Awesome! We found {len(sentences)} sentences for you. Let's practice:")
           
+          # 🗃️ 初始化音訊狀態字典
           if "audio_cache" not in st.session_state:
               st.session_state.audio_cache = {}
           
@@ -343,16 +320,16 @@ else:
               translated = translate_text(full_sentence)
               sentence_vocabs = extract_fast_contextual_vocab(full_sentence, translated)
               
-              # 1️⃣ 列出句子卡片（保留中文翻譯對照）
+              # 1️⃣ 第一步：列句子卡片 (移除多餘的重複數字，純粹乾淨的藍條樣式)
               st.markdown(f"""
                     <div class="sentence-card">
                         <div class="card-index">Sentence {i+1}</div>
-                        <div class="english-text">{full_sentence}</div>
+                       <div class="english-text">{full_sentence}</div>
                         <div class="chinese-text">💡 {translated}</div>
                     </div>
               """, unsafe_allow_html=True)
               
-              # 2️⃣ 發音條緩存保護
+              # 2️⃣ 第二步：句子的發音條 (⚡ 使用記憶體緩存守護，絕對不遺失)
               try:
                    if i not in st.session_state.audio_cache:
                        tts = gTTS(text=full_sentence, lang='en', slow=False)
@@ -365,23 +342,23 @@ else:
               except Exception:
                    st.warning("Audio generation slightly delayed...")
               
-              # 3️⃣ 展開生字本（完美保留：單字 ＋ 中文對照）
+              # 3️⃣ 第三步：將生字本包進摺疊抽屜中 (溫潤橙金色)
               if sentence_vocabs:
                    with st.expander("🔑 Vocabulary "):
                        vocab_html = '<div class="vocab-box">'
                        for item in sentence_vocabs:
-                           vocab_html += f'<span class="vocab-tag">📌 {item["word"]} ： {item["meaning"]}</span>'
+                           vocab_html += f'<span class="vocab-tag">📌 {item["word"]}：{item["meaning"]}</span>'
                        vocab_html += '</div>'
                        st.markdown(vocab_html, unsafe_allow_html=True)
                        
-                       # 4️⃣ 綠色新分頁測驗按鈕
+                       # 4️⃣ 第四步：綠色按鍵 ── 點擊開啟獨立的新網頁分頁框
                        vocabs_json = json.dumps(sentence_vocabs)
                        encoded_vocabs = urllib.parse.quote(vocabs_json)
                        quiz_target_url = f"?quiz_vocabs={encoded_vocabs}"
                        
                        st.markdown(f"""
                             <a href="{quiz_target_url}" target="_blank" class="quiz-link-btn">
-                                📝 Open Cloze Quiz ({len(sentence_vocabs)} Questions) in New Tab
+                                📝 Open Cloze Quiz (Sentence {i+1} • New Context)
                             </a>
                        """, unsafe_allow_html=True)
               else:
