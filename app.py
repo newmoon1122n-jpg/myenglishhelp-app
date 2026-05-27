@@ -219,7 +219,6 @@ if "quiz_vocabs" in query_params:
     st.write("---")
     
     if incoming_vocabs:
-        # 100% 獨立觸發 AI 針對傳過來的生字庫生成全新句子與隨機選項
         if "session_quiz_data" not in st.session_state:
             with st.spinner("⚡ Gemini AI 正在為您暗中打造全新的應用題型與選項..."):
                 st.session_state.session_quiz_data = generate_cloze_sentences_free(incoming_vocabs)
@@ -237,7 +236,6 @@ if "quiz_vocabs" in query_params:
             </div>
             """, unsafe_allow_html=True)
             
-            # 💥 結合動態干擾字，打散排序，確保每一道題目的四個選項完完全全不一樣！
             options = list(set([target_word] + distractors))
             emergency = ["wonder", "system", "future", "clear", "active", "scenery"]
             for em in emergency:
@@ -282,10 +280,9 @@ if "quiz_vocabs" in query_params:
     st.info("💡 練習完畢！您可以直接關閉此網頁分頁，返回原文章閱讀面板。")
 
 # ==========================================
-# ─── 📖 【模式 B：文章閱讀主網頁 (完美保留所有視覺)】 ───
+# ─── 📖 【模式 B：文章閱讀主網頁 (防掉音軌優化版)】 ───
 # ==========================================
 else:
-    # --- 🎨 畫面正式渲染 🎨 ---
     st.markdown('<div class="author-logo">🚀 AI Crafted by MACAOCMM</div>', unsafe_allow_html=True)
      
     st.markdown("""
@@ -304,6 +301,9 @@ else:
     if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True, key="start_analysis_btn"):
        if text_input.strip():
           st.session_state.processed_text = text_input.strip()
+          # 🔄 清空舊的語音緩存，確保新文章重新生成語音
+          if "audio_cache" in st.session_state:
+              del st.session_state.audio_cache
        else:
           st.warning("Please enter some English sentences first!")
 
@@ -311,12 +311,16 @@ else:
           sentences = [s.strip() for s in st.session_state.processed_text.replace('?', '.').replace('!', '.').split('.') if s.strip()]
           st.success(f"🎉 Awesome! We found {len(sentences)} sentences for you. Let's practice:")
           
+          # 🗃️ 初始化音訊狀態字典
+          if "audio_cache" not in st.session_state:
+              st.session_state.audio_cache = {}
+          
           for i, sentence in enumerate(sentences):
               full_sentence = sentence + "."
               translated = translate_text(full_sentence)
               sentence_vocabs = extract_fast_contextual_vocab(full_sentence, translated)
               
-              # 1️⃣ 第一步：列句子卡片 (藍條樣式)
+              # 1️⃣ 第一步：列句子卡片 (移除多餘的重複數字，純粹乾淨的藍條樣式)
               st.markdown(f"""
                     <div class="sentence-card">
                         <div class="card-index">Sentence {i+1}</div>
@@ -325,13 +329,16 @@ else:
                     </div>
               """, unsafe_allow_html=True)
               
-              # 2️⃣ 第二步：句子的發音條
+              # 2️⃣ 第二步：句子的發音條 (⚡ 使用記憶體緩存守護，絕對不遺失)
               try:
-                   tts = gTTS(text=full_sentence, lang='en', slow=False)
-                   fp = io.BytesIO()
-                   tts.write_to_fp(fp)
-                   fp.seek(0)
-                   st.audio(fp, format="audio/mp3", key=f"audio_player_{i}")
+                   if i not in st.session_state.audio_cache:
+                       tts = gTTS(text=full_sentence, lang='en', slow=False)
+                       fp = io.BytesIO()
+                       tts.write_to_fp(fp)
+                       fp.seek(0)
+                       st.session_state.audio_cache[i] = fp.read()
+                   
+                   st.audio(st.session_state.audio_cache[i], format="audio/mp3")
               except Exception:
                    st.warning("Audio generation slightly delayed...")
               
@@ -347,7 +354,6 @@ else:
                        # 4️⃣ 第四步：綠色按鍵 ── 點擊開啟獨立的新網頁分頁框
                        vocabs_json = json.dumps(sentence_vocabs)
                        encoded_vocabs = urllib.parse.quote(vocabs_json)
-                       # 利用 target="_blank" 確保點擊時在全新分頁開啟測驗，絕不干擾主頁面
                        quiz_target_url = f"?quiz_vocabs={encoded_vocabs}"
                        
                        st.markdown(f"""
