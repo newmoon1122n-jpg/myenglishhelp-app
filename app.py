@@ -65,4 +65,41 @@ st.markdown("""
   .stExpander summary { font-size: 16px !important; font-weight: bold !important; color: #D84315 !important; background-color: #FFFDE5 !important; border-radius: 8px !important; padding: 10px !important; }
   
   /* 🟩 新增的綠色測驗按鈕樣式 */
-  .quiz-link-btn { display: block; text-align: center; padding: 12px; background-color: #10B981 !important; color: white !important; font-weight: bold; border-radius: 10px; text-decoration
+  .quiz-link-btn { display: block; text-align: center; padding: 12px; background-color: #10B981 !important; color: white !important; font-weight: bold; border-radius: 10px; text-decoration: none; margin-top: 10px; }
+  .quiz-page-card { background-color: white; border: 2px solid #E2E8F0; border-radius: 12px; padding: 20px; margin-bottom: 15px; }
+  </style>
+""", unsafe_allow_html=True)
+
+# --- 路由邏輯 ---
+query_params = st.query_params
+
+if "quiz_vocabs" in query_params:
+    st.markdown("## 📝 Contextual Cloze Quiz")
+    vocabs = json.loads(urllib.parse.unquote(query_params["quiz_vocabs"]))
+    if "quiz_data" not in st.session_state:
+        st.session_state.quiz_data = generate_cloze_sentences(vocabs)
+    for i, q in enumerate(st.session_state.quiz_data):
+        st.markdown(f'<div class="quiz-page-card"><strong>Q{i+1}:</strong> {q["new_sentence"]}</div>', unsafe_allow_html=True)
+        st.radio(f"Select:", sorted([q["target_word"]] + q["distractors"]), key=f"r{i}")
+    st.stop()
+
+# --- 主程式 ---
+text_input = st.text_area("✍️ Paste your English text below:", height=180)
+if st.button("🚀 Start Audio & Reading Analysis"):
+    sentences = [s.strip() + "." for s in text_input.replace('?', '.').replace('!', '.').split('.') if s.strip()]
+    for i, s in enumerate(sentences):
+        trans = translate_text(s)
+        vocabs = extract_fast_contextual_vocab(s, trans)
+        st.markdown(f'<div class="sentence-card"><strong>Sentence {i+1}</strong><br>{s}<br><div class="chinese-text">💡 {trans}</div></div>', unsafe_allow_html=True)
+        
+        if vocabs:
+            with st.expander("🔑 Vocabulary "):
+                vocab_html = '<div class="vocab-box">'
+                for v in vocabs:
+                    vocab_html += f'<span class="vocab-tag">📌 {v["word"]}：{v["meaning"]}</span>'
+                vocab_html += '</div>'
+                st.markdown(vocab_html, unsafe_allow_html=True)
+                
+                # 綠色按鈕連結
+                encoded = urllib.parse.quote(json.dumps(vocabs))
+                st.markdown(f'<a href="?quiz_vocabs={encoded}" target="_blank" class="quiz-link-btn">📝 Enter Cloze Quiz</a>', unsafe_allow_html=True)
