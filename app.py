@@ -7,9 +7,13 @@ import re
 import io
 
 # 🎯 Web Configuration
-st.set_page_config(page_title="Smart Reading Buddy", layout="centered", initial_sidebar_state="collapsed")
+st.set_page_config(
+    page_title="Smart Reading Buddy",
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
 
-# 🚀 翻譯核心
+# 🚀 輕量高效翻譯核心
 def translate_text(text, target_lang='zh-TW'):
     try:
         url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={target_lang}&dt=t&q={urllib.parse.quote(text)}"
@@ -17,72 +21,177 @@ def translate_text(text, target_lang='zh-TW'):
         with urllib.request.urlopen(req) as response:
             data = json.loads(response.read().decode('utf-8'))
             return "".join([sentence[0] for sentence in data[0] if sentence[0]])
-    except Exception: return "無法取得翻譯"
+    except Exception:
+        return "無法取得翻譯"
 
-# 🎯 高速語境生字提取
+# 🎯 高速語境生字提取函數
 def extract_fast_contextual_vocab(sentence_text, sentence_translation):
     clean_text = re.sub(r"[^\w\s'\-]", ' ', sentence_text)
     words = clean_text.split()
-    ignore_words = {'the', 'a', 'an', 'to', 'of', 'at', 'in', 'on', 'by', 'for', 'from', 'with', 'and', 'but', 'or', 'so', 'because', 'if', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'this', 'that', 'these', 'those', 'is', 'am', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had', 'do', 'does', 'did', 'can', 'will', 'should', 'would', 'could', 'may', 'might', 'must', 'my', 'your', 'his', 'her', 'its', 'our', 'their', 'me', 'him', 'them', 'us'}
+    
+    ignore_words = {
+        'the', 'a', 'an', 'to', 'of', 'at', 'in', 'on', 'by', 'for', 'from', 'with', 'and', 'but', 
+        'or', 'so', 'because', 'if', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'this', 'that', 
+        'these', 'those', 'is', 'am', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had', 
+        'do', 'does', 'did', 'can', 'will', 'should', 'would', 'could', 'may', 'might', 'must',
+        'my', 'your', 'his', 'her', 'its', 'our', 'their', 'me', 'him', 'them', 'us'
+    }
+    
     vocab_list = []
     seen_words = set()
+    
     for word in words:
         w_lower = word.lower().strip('-')
-        if "'" in w_lower or len(w_lower) < 3 or w_lower in ignore_words or w_lower in seen_words or not re.match(r'^[a-z\-]+$', w_lower): continue
+        
+        if "'" in w_lower:
+            continue
+            
+        if len(w_lower) < 3 or w_lower in ignore_words or w_lower in seen_words:
+            continue
+            
+        if not re.match(r'^[a-z\-]+$', w_lower):
+            continue
+            
         seen_words.add(w_lower)
+        
         try:
-            meaning = translate_text(w_lower)
-            if meaning.lower() != w_lower: vocab_list.append({"word": w_lower, "meaning": meaning})
-        except: continue
+            basic_meaning = translate_text(w_lower)
+            context_meaning = basic_meaning
+            
+            if w_lower == "party":
+                if "政黨" in sentence_translation: context_meaning = "政黨"
+                elif "派對" in sentence_translation or "聚會" in sentence_translation: context_meaning = "派對/聚會"
+            
+            elif w_lower == "spoke":
+                if "輻條" in sentence_translation or "輪輻" in sentence_translation: context_meaning = "輻條"
+                elif "說" in sentence_translation or "談" in sentence_translation: context_meaning = "說話 (speak的過去式)"
+            
+            elif "-" in w_lower and context_meaning.lower() == w_lower:
+                continue
+                
+            if context_meaning.lower() == w_lower:
+                continue
+                
+            vocab_list.append({"word": w_lower, "meaning": context_meaning})
+        except Exception:
+            continue
+        
     return vocab_list
 
-# 🧠 Gemini AI 出題函數
-def generate_cloze_quiz(vocabs):
-    api_key = st.secrets.get("GEMINI_API_KEY")
-    if not api_key: return None
-    
-    target_words = ",".join([v["word"] for v in vocabs[:3]]) # 取前三個單字出題
-    prompt = f"Create 3 simple English cloze test questions using these words: {target_words}. Each question should replace the target word with '_______'. Provide 3 wrong distractors for each. Return ONLY valid JSON format: [{{\"q\": \"The sentence with _______\", \"ans\": \"correct_word\", \"options\": [\"opt1\", \"opt2\", \"opt3\", \"opt4\"]}}]"
-    
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
-    req = urllib.request.Request(url, data=json.dumps({"contents": [{"parts": [{"text": prompt}]}]}).encode(), headers={'Content-Type': 'application/json'})
-    with urllib.request.urlopen(req) as res:
-        data = json.loads(res.read().decode())
-        text = data["candidates"][0]["content"]["parts"][0]["text"]
-        # 清理 markdown 標記
-        text = re.sub(r'```json|```', '', text).strip()
-        return json.loads(text)
 
-# --- 🎨 CSS ---
+# --- 🚀 網頁精美視覺設計 (CSS) 🚀 ---
 st.markdown("""
-    <style>
-    .app-header { background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%); padding: 30px; border-radius: 20px; text-align: center; color: white; margin-bottom: 25px; }
-    .stButton button { background-color: #FF9800 !important; color: white !important; font-weight: 800 !important; }
-    .green-btn { background-color: #10B981 !important; color: white !important; border-radius: 10px !important; padding: 10px !important; width: 100%; border: none !important; font-weight: bold !important; }
-    .quiz-card { background: #F0FDF4; border: 2px solid #10B981; padding: 15px; border-radius: 10px; margin-bottom: 15px; }
-    </style>
+   <style>
+   #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
+   .stAppDeployButton {display: none !important;} div[data-testid="stDecoration"] {display: none !important;}
+   .stApp { background-color: #F8FAFC; }
+    
+   .author-logo {
+       position: absolute; top: -15px; left: 0px;              
+       font-size: 12px !important; font-weight: 700 !important;
+       color: #1E4ED8 !important; background-color: #EFF6FF;  
+       padding: 5px 12px; border-radius: 8px; border: 2px solid #BFDBFE;  
+       font-family: sans-serif; letter-spacing: 0.5px; z-index: 999;
+   }
+    
+   .app-header {
+       background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
+       padding: 30px; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(59, 131, 246, 0.2);
+       margin-bottom: 25px; text-align: center; position: relative; 
+   }
+   .main-title { font-size: 38px !important; font-weight: 800 !important; color: #FFFFFF !important; margin: 0px !important; letter-spacing: 1px; }
+   .sub-title { font-size: 16px !important; color: #E0F2FE !important; margin-top: 8px !important; opacity: 0.9; }
+   .input-label { font-size: 22px !important; font-weight: 900 !important; color: #000000 !important; margin-bottom: 12px !important; display: block; }
+   .input-disclaimer { font-size: 15px !important; color: #EF4444 !important; font-weight: 700 !important; font-style: italic; margin-bottom: 15px !important; display: block; }
+ 
+   .stTextArea textarea {
+       border: 6px solid #000000 !important; border-radius: 14px !important;      
+       background-color: #FFFFFF !important; font-size: 20px !important; color: #000000 !important; font-weight: 500 !important;
+   }
+   
+   .stButton button {
+       font-size: 24px !important; font-weight: 800 !important; padding: 14px 28px !important; border-radius: 12px !important;       
+       background-color: #FF9800 !important; color: #FFFFFF !important; border: none !important;
+       box-shadow: 0 4px 6px rgba(255, 152, 0, 0.3) !important;
+   }
+    
+   .sentence-card {
+       background-color: #FFFFFF; padding: 24px; border-radius: 16px; border-left: 6px solid #3B82F6;
+       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-top: 20px; margin-bottom: 5px;
+   }
+   .card-index { font-size: 14px !important; font-weight: bold !important; color: #3B82F6 !important; text-transform: uppercase; margin-bottom: 4px; }
+   .english-text { font-size: 26px !important; font-weight: 600 !important; color: #0F172A !important; line-height: 1.4 !important; margin-bottom: 12px !important; }
+   .chinese-text { font-size: 20px !important; font-weight: 500 !important; color: #475569 !important; background-color: #F1F5F9; padding: 10px 14px; border-radius: 8px; margin-bottom: 5px !important; }
+
+   .vocab-box { background-color: #FFFDF5; border: 1px dashed #FFD54F; border-radius: 10px; padding: 12px 16px; margin-top: 5px; margin-bottom: 10px; }
+   .vocab-tag {
+       display: inline-block; background-color: #FFF3E0; color: #E65100; padding: 4px 10px; border-radius: 6px;
+       font-size: 15px; font-weight: bold; margin-right: 8px; margin-bottom: 8px; border: 1px solid #FFE0B2;
+   }
+   
+   /* 讓 Streamlit 的摺疊面板標題看起來更醒目漂亮 */
+   .stExpander { border: none !important; box-shadow: none !important; margin-bottom: 20px !important; }
+   .stExpander summary { font-size: 16px !important; font-weight: bold !important; color: #D84315 !important; background-color: #FFFDE5 !important; border-radius: 8px !important; padding: 10px !important; }
+   </style>
 """, unsafe_allow_html=True)
-
-# --- 渲染 ---
-st.markdown('<div class="app-header"><h1>📱 Smart Reading</h1></div>', unsafe_allow_html=True)
+ 
+# --- 🎨 畫面正式渲染 🎨 ---
+st.markdown('<div class="author-logo">🚀 AI Crafted by MACAOCMM</div>', unsafe_allow_html=True)
+ 
+st.markdown("""
+   <div class="app-header">
+       <p class="main-title">📱Smart Reading</p>
+       <p class="sub-title">Break down text • Learn step by step</p>
+   </div>
+""", unsafe_allow_html=True)
+ 
+st.markdown('<span class="input-disclaimer">Powered by Google Translate. Content is for reference only and may not be perfect.</span>', unsafe_allow_html=True)
+st.markdown('<p class="input-label">✍️ Paste your English text below:</p>', unsafe_allow_html=True)
+ 
 text_input = st.text_area("", height=180, placeholder="Enter English text here...")
-
-if st.button("🚀 Start Audio & Reading Analysis"):
-    sentences = [s.strip() for s in text_input.replace('?', '.').replace('!', '.').split('.') if s.strip()]
-    for i, s in enumerate(sentences):
-        full = s + "."
-        trans = translate_text(full)
-        vocabs = extract_fast_contextual_vocab(full, trans)
-        
-        st.markdown(f'<div class="sentence-card"><strong>{full}</strong><br><small>{trans}</small></div>', unsafe_allow_html=True)
-        
-        # 綠色 Cloze Quiz 按鈕
-        if vocabs:
-            quiz_key = f"quiz_{i}"
-            if st.button("📝 Open Cloze Quiz", key=quiz_key):
-                st.session_state[quiz_key] = generate_cloze_quiz(vocabs)
-            
-            if quiz_key in st.session_state and st.session_state[quiz_key]:
-                for q in st.session_state[quiz_key]:
-                    st.markdown(f'<div class="quiz-card">{q["q"]}</div>', unsafe_allow_html=True)
-                    st.radio("Select:", q["options"], key=q["q"])
+st.write("") 
+ 
+if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
+   if text_input.strip():
+       sentences = [s.strip() for s in text_input.replace('?', '.').replace('!', '.').split('.') if s.strip()]
+       
+       st.success(f"🎉 Awesome! We found {len(sentences)} sentences for you. Let's practice:")
+       
+       for i, sentence in enumerate(sentences):
+           full_sentence = sentence + "."
+           translated = translate_text(full_sentence)
+           
+           sentence_vocabs = extract_fast_contextual_vocab(full_sentence, translated)
+           
+           # 1️⃣ 第一步：列句子卡片
+           st.markdown(f"""
+                <div class="sentence-card">
+                    <div class="card-index">Sentence {i+1}</div>
+                    <div class="english-text">{full_sentence}</div>
+                    <div class="chinese-text">💡 {translated}</div>
+                </div>
+           """, unsafe_allow_html=True)
+           
+           # 2️⃣ 第二步：句子的發音條
+           try:
+               tts = gTTS(text=full_sentence, lang='en', slow=False)
+               fp = io.BytesIO()
+               tts.write_to_fp(fp)
+               fp.seek(0)
+               st.audio(fp, format="audio/mp3")
+           except Exception:
+               st.warning("Audio generation slightly delayed...")
+           
+           # 3️⃣ 第三步：💡 核心修改：將生字本包進摺疊抽屜中，點擊才打開
+           if sentence_vocabs:
+               with st.expander("🔑 Vocabulary "):
+                   vocab_html = '<div class="vocab-box">'
+                   for item in sentence_vocabs:
+                       vocab_html += f'<span class="vocab-tag">📌 {item["word"]}：{item["meaning"]}</span>'
+                   vocab_html += '</div>'
+                   st.markdown(vocab_html, unsafe_allow_html=True)
+           else:
+               st.write("")
+           
+   else:
+       st.warning("Please enter some English sentences first!")
