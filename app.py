@@ -14,20 +14,19 @@ st.set_page_config(
    initial_sidebar_state="collapsed"
 )
  
-# 🚀 Lightweight Translation / Explanation Core (Switched to English definition)
-def get_english_definition(text):
+# 🚀 Translation Core for Main Panel
+def translate_text(text, target_lang='zh-TW'):
    try:
-       # Using dictionary hint style definition for cleaner context mapping
-       url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q={urllib.parse.quote(text)}"
+       url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl={target_lang}&dt=t&q={urllib.parse.quote(text)}"
        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
        with urllib.request.urlopen(req) as response:
            data = json.loads(response.read().decode('utf-8'))
            return "".join([sentence[0] for sentence in data[0] if sentence[0]])
    except Exception:
-       return "Definition Unavailable"
+       return "無法取得翻譯"
  
-# 🎯 Fast Contextual Vocabulary Extractor
-def extract_fast_contextual_vocab(sentence_text):
+# 🎯 Contextual Vocabulary Extractor
+def extract_fast_contextual_vocab(sentence_text, sentence_translation):
    clean_text = re.sub(r"[^\w\s'\-]", ' ', sentence_text)
    words = clean_text.split()
     
@@ -57,17 +56,31 @@ def extract_fast_contextual_vocab(sentence_text):
        seen_words.add(w_lower)
         
        try:
-           # Provide clean formatting for the word in pure English
-           vocab_list.append({"word": w_lower, "meaning": f"Core word inside context: {w_lower}"})
+           context_meaning = translate_text(w_lower)
+           
+           if w_lower == "party":
+                if "政黨" in sentence_translation: context_meaning = "政黨"
+                elif "派對" in sentence_translation or "聚會" in sentence_translation: context_meaning = "派對/聚會"
+           
+           elif w_lower == "spoke":
+                if "輻條" in sentence_translation or "輪輻" in sentence_translation: context_meaning = "輻條"
+                elif "說" in sentence_translation or "談" in sentence_translation: context_meaning = "說話 (speak的過去式)"
+           
+           elif "-" in w_lower and context_meaning.lower() == w_lower:
+                continue
+                
+           if context_meaning.lower() == w_lower:
+                continue
+                
+           vocab_list.append({"word": w_lower, "meaning": context_meaning})
        except Exception:
            continue
        
    return vocab_list
 
-# 🧠 AI Quiz Core: Generate a clean immersive experience in a new tab
+# 🧠 AI Quiz Generation Engine
 def generate_cloze_sentences_free(vocabs):
     target_words_str = ",".join([v["word"] for v in vocabs])
-    
     base_distractors = ["challenge", "explore", "journey", "knowledge", "practice", "wisdom", "advance", "creative", "imagine", "observe", "active", "scenery", "wonder", "perfect", "culture", "nature", "history", "science", "future", "digital", "world", "learning", "opinion", "society", "experience", "language", "ability", "improve", "express", "develop"]
     
     fallback_data = []
@@ -76,7 +89,7 @@ def generate_cloze_sentences_free(vocabs):
         selected_wrong = random.sample(wrong_choices, 3)
         fallback_data.append({
             "target_word": v["word"],
-            "new_sentence": "We need to analyze and _______ our skills in the current context.",
+            "new_sentence": "We should always explore and _______ new ideas in our studies.",
             "meaning": v["meaning"],
             "distractors": selected_wrong
         })
@@ -111,7 +124,7 @@ def generate_cloze_sentences_free(vocabs):
         return fallback_data
 
 
-# --- 🚀 Modern Visual Theme CSS (Pure English) 🚀 ---
+# --- 🚀 CSS Layout Styling 🚀 ---
 st.markdown("""
   <style>
   #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
@@ -152,7 +165,8 @@ st.markdown("""
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); margin-top: 20px; margin-bottom: 5px;
    }
   .card-index { font-size: 14px !important; font-weight: bold !important; color: #3B82F6 !important; text-transform: uppercase; margin-bottom: 4px; }
-  .english-text { font-size: 26px !important; font-weight: 600 !important; color: #0F172A !important; line-height: 1.4 !important; margin-bottom: 5px !important; }
+  .english-text { font-size: 26px !important; font-weight: 600 !important; color: #0F172A !important; line-height: 1.4 !important; margin-bottom: 12px !important; }
+  .chinese-text { font-size: 20px !important; font-weight: 500 !important; color: #475569 !important; background-color: #F1F5F9; padding: 10px 14px; border-radius: 8px; margin-bottom: 5px !important; }
  
   .vocab-box { background-color: #FFFDF5; border: 1px dashed #FFD54F; border-radius: 10px; padding: 12px 16px; margin-top: 5px; margin-bottom: 10px; }
   .vocab-tag {
@@ -190,21 +204,24 @@ if "quiz_vocabs" in query_params:
     except:
         incoming_vocabs = []
         
+    # ✨ Changed title text and subheadings to English
     st.markdown("""
         <div style='text-align: center; margin-top: 15px; margin-bottom: 25px;'>
             <h2 style='color: #1E3A8A; font-weight: 800; margin-bottom:5px;'>📝 Contextual Cloze Quiz</h2>
-            <p style='color: #64748B; font-size: 16px;'>Select the best target vocabulary word based on the context generated below.</p>
+            <p style='color: #64748B; font-size: 16px;'>Advance your reading metrics. Evaluate target definitions with AI items.</p>
         </div>
     """, unsafe_allow_html=True)
     st.write("---")
     
     if incoming_vocabs:
         if "session_quiz_data" not in st.session_state:
-            with st.spinner("⚡ AI is constructing distinct immersive exercises for your selection..."):
+            # ✨ Changed status loader info into English
+            with st.spinner("⚡ AI is constructing tailored contextual questions and options..."):
                 st.session_state.session_quiz_data = generate_cloze_sentences_free(incoming_vocabs)
         
         for idx, quiz_item in enumerate(st.session_state.session_quiz_data):
             target_word = quiz_item.get("target_word", "error")
+            meaning = quiz_item.get("meaning", "")
             new_sentence = quiz_item.get("new_sentence", "_______")
             distractors = quiz_item.get("distractors", ["wordA", "wordB", "wordC"])
             
@@ -239,38 +256,39 @@ if "quiz_vocabs" in query_params:
                 
             if st.session_state[state_key]:
                 if user_choice.lower() == target_word.lower():
-                    st.success(f"🎉 Well done! '{user_choice}' is completely correct.")
+                    st.success(f"🎉 Awesome! '{user_choice}' is completely correct.")
                 else:
-                    st.error(f"❌ Incorrect. The correct answer should be: **{target_word}**")
+                    st.error(f"❌ Incorrect. The target answer was: **{target_word}**")
                 
+                # Feedback loop translated into plain English
                 st.markdown(f"""
                     <div class="explanation-page-box">
-                        <strong>💡 Vocabulary Expansion Hint:</strong><br>
-                        The targeted keyword is <strong>{target_word}</strong>. Try practicing this sentence aloud to build retention.
+                        <strong>💡 Vocabulary Hint:</strong><br>
+                        Core item: <strong>{target_word}</strong> (Meaning: {meaning})<br>
                     </div>
                 """, unsafe_allow_html=True)
                 
             st.write("<br><br>", unsafe_allow_html=True)
     else:
-        st.warning("No vocabulary parameters detected. Please return to the reading panel.")
+        st.warning("No vocabulary parameters detected. Please return to the reading dashboard.")
         
     st.write("---")
-    st.info("💡 Practice complete! You can safely close this browser window and go back to your main reading stream.")
+    st.info("💡 Assessment completed. You can safely exit this browser tab.")
 
 # ==========================================
-# ─── 📖 【Mode B: Main Reading Panel (Solid Audio Sync)】 ───
+# ─── 📖 【Mode B: Main Bilingual Reading Board】 ───
 # ==========================================
 else:
     st.markdown('<div class="author-logo">🚀 AI Crafted by MACAOCMM</div>', unsafe_allow_html=True)
      
     st.markdown("""
       <div class="app-header">
-          <p class="main-title">📱 Smart Reading Panel</p>
+          <p class="main-title">📱 Smart Reading</p>
           <p class="sub-title">Break down text • Learn step by step</p>
        </div>
     """, unsafe_allow_html=True)
      
-    st.markdown('<span class="input-disclaimer">Content engine online. Verified secure framework.</span>', unsafe_allow_html=True)
+    st.markdown('<span class="input-disclaimer">Powered by Google Translate. Content is for reference only and may not be perfect.</span>', unsafe_allow_html=True)
     st.markdown('<p class="input-label">✍️ Paste your English text below:</p>', unsafe_allow_html=True)
      
     text_input = st.text_area("", height=180, placeholder="Enter English text here...", key="main_text_input")
@@ -286,24 +304,26 @@ else:
 
     if "processed_text" in st.session_state:
           sentences = [s.strip() for s in st.session_state.processed_text.replace('?', '.').replace('!', '.').split('.') if s.strip()]
-          st.success(f"🎉 Analysis Complete! Found {len(sentences)} distinct segments. Let's practice:")
+          st.success(f"🎉 Awesome! We found {len(sentences)} sentences for you. Let's practice:")
           
           if "audio_cache" not in st.session_state:
               st.session_state.audio_cache = {}
           
           for i, sentence in enumerate(sentences):
               full_sentence = sentence + "."
-              sentence_vocabs = extract_fast_contextual_vocab(full_sentence)
+              translated = translate_text(full_sentence)
+              sentence_vocabs = extract_fast_contextual_vocab(full_sentence, translated)
               
-              # 1️⃣ Clean sentence cards with absolutely no Chinese elements
+              # 1️⃣ Main reading output with bilingual tags retained
               st.markdown(f"""
                     <div class="sentence-card">
                         <div class="card-index">Sentence {i+1}</div>
                         <div class="english-text">{full_sentence}</div>
+                        <div class="chinese-text">💡 {translated}</div>
                     </div>
               """, unsafe_allow_html=True)
               
-              # 2️⃣ Robust audio cache layer
+              # 2️⃣ Native Audio stream
               try:
                    if i not in st.session_state.audio_cache:
                        tts = gTTS(text=full_sentence, lang='en', slow=False)
@@ -316,23 +336,23 @@ else:
               except Exception:
                    st.warning("Audio generation slightly delayed...")
               
-              # 3️⃣ English Vocabulary drawers
+              # 3️⃣ Expandable Vocabulary (Chinese mappings preserved)
               if sentence_vocabs:
-                   with st.expander("🔑 Vocabulary Track"):
+                   with st.expander("🔑 Vocabulary "):
                        vocab_html = '<div class="vocab-box">'
                        for item in sentence_vocabs:
-                           vocab_html += f'<span class="vocab-tag">📌 {item["word"]}</span>'
+                           vocab_html += f'<span class="vocab-tag">📌 {item["word"]} ： {item["meaning"]}</span>'
                        vocab_html += '</div>'
                        st.markdown(vocab_html, unsafe_allow_html=True)
                        
-                       # 4️⃣ Fully English-targeted Quiz Redirection Button
+                       # 4️⃣ Dynamic Quiz Tab configuration
                        vocabs_json = json.dumps(sentence_vocabs)
                        encoded_vocabs = urllib.parse.quote(vocabs_json)
                        quiz_target_url = f"?quiz_vocabs={encoded_vocabs}"
                        
                        st.markdown(f"""
                             <a href="{quiz_target_url}" target="_blank" class="quiz-link-btn">
-                                📝 Open Cloze Quiz (Sentence {i+1} • Fresh Context)
+                                📝 Open Cloze Quiz ({len(sentence_vocabs)} Distinct Questions) in New Tab
                             </a>
                        """, unsafe_allow_html=True)
               else:
