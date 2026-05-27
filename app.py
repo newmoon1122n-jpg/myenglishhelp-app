@@ -131,4 +131,66 @@ st.markdown("""
    }
    
   .stExpander { border: none !important; box-shadow: none !important; margin-bottom: 20px !important; }
-  .stExp
+  .stExpander summary { font-size: 16px !important; font-weight: bold !important; color: #D84315 !important; background-color: #FFFDE5 !important; border-radius: 8px !important; padding: 10px !important; }
+  </style>
+""", unsafe_allow_html=True)
+
+# --- 🎨 畫面正式渲染 🎨 ---
+st.markdown('<div class="author-logo">🚀 AI Crafted by MACAOCMM</div>', unsafe_allow_html=True)
+
+st.markdown("""
+  <div class="app-header">
+      <p class="main-title">📱Smart Reading</p>
+      <p class="sub-title">Break down text • Learn step by step</p>
+   </div>
+""", unsafe_allow_html=True)
+
+st.markdown('<span class="input-disclaimer">Powered by Google Translate. Content is for reference only and may not be perfect.</span>', unsafe_allow_html=True)
+st.markdown('<p class="input-label">✍️ Paste your English text below:</p>', unsafe_allow_html=True)
+
+text_input = st.text_area("", height=180, placeholder="Enter English text here...")
+st.write("") 
+
+if st.button("🚀 Start Audio & Reading Analysis", use_container_width=True):
+   if text_input.strip():
+      sentences = [s.strip() for s in text_input.replace('?', '.').replace('!', '.').split('.') if s.strip()]
+      
+      st.success(f"🎉 Awesome! We found {len(sentences)} sentences for you. Let's practice:")
+      
+      for i, sentence in enumerate(sentences):
+          full_sentence = sentence + "."
+          translated = translate_text(full_sentence)
+          
+          sentence_vocabs = extract_fast_contextual_vocab(full_sentence, translated)
+          
+          # 1️⃣ 第一步：列句子卡片
+          st.markdown(f"""
+                <div class="sentence-card">
+                     <div class="card-index">Sentence {i+1}</div>
+                     <div class="english-text">{full_sentence}</div>
+                     <div class="chinese-text">💡 {translated}</div>
+                </div>
+          """, unsafe_allow_html=True)
+          
+          # 2️⃣ 第二步：句子的發音條
+          try:
+              tts = gTTS(text=full_sentence, lang='en', slow=False)
+              fp = io.BytesIO()
+              tts.write_to_fp(fp)
+              fp.seek(0)
+              st.audio(fp, format="audio/mp3")
+          except Exception:
+              st.warning("Audio generation slightly delayed...")
+          
+          # 3️⃣ 第三步：💡 核心修改：將生字本包進摺疊抽屜中，點擊才打開
+          if sentence_vocabs:
+              with st.expander("🔑 Vocabulary "):
+                  vocab_html = '<div class="vocab-box">'
+                  for item in sentence_vocabs:
+                      vocab_html += f'<span class="vocab-tag">📌 {item["word"]}：{item["meaning"]}</span>'
+                  vocab_html += '</div>'
+                  st.markdown(vocab_html, unsafe_allow_html=True)
+          else:
+              st.write("")
+   else:
+      st.warning("Please enter some English sentences first!")
